@@ -1,0 +1,10 @@
+# Ignore julia specific files
+Manifest*.toml
+.CondaPkg/
+
+# Ignore local development files
+playground/
+
+# Ignore the generated databases
+database/
+profiling/

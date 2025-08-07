@@ -1,0 +1,80 @@
+name: Generate Databases
+
+on:
+  push:
+    branches: ["*"]
+    tags: ["v*.*"]
+  pull_request:
+    types: [opened, reopened, synchronize]
+
+jobs:
+  run-generate-database::
+    strategy:
+      fail-fast: false
+      matrix:
+        species: [Sr87_mqdt, Sr88_mqdt, Yb171_mqdt, Yb173_mqdt, Yb174_mqdt]
+    name: ${{ matrix.species }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 300
+    permissions: # needed to allow julia-actions/cache to proactively delete old caches that it has created
+      actions: write
+      contents: read
+    steps:
+    - uses: actions/checkout@v4
+
+    - uses: julia-actions/setup-julia@v2
+      with:
+        version: 1.11
+        arch: x64
+    - uses: julia-actions/cache@v2
+    - uses: julia-actions/julia-buildpkg@v1
+
+    - name: Instantiate julia environment
+      run: julia --project=. -e 'import Pkg; Pkg.instantiate()'
+
+    - name: Run generate_database.py
+      run: julia --project=. generate_database.jl ${{ matrix.species }} --directory database --n-max 220
+
+    - name: Upload artifacts
+      uses: actions/upload-artifact@v4
+      with:
+        name: database-${{ matrix.species }}
+        path: |
+          database/*/*.parquet
+
+
+  github-release:
+    name: Release database files to github releases
+    if: startsWith(github.ref, 'refs/tags/')  # only release to github on tag pushes
+    needs: [run-generate-database]
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    permissions:
+      contents: write
+
+    steps:
+    - name: Download all the database files
+      uses: actions/download-artifact@v4
+      with:
+        path: database
+        pattern: database-*
+        merge-multiple: true
+
+    - name: Zip database folders
+      working-directory: database/
+      run: |
+        VERSION_TAG=${GITHUB_REF#refs/tags/}
+        for dir in */; do
+          if [[ "$dir" != *"$VERSION_TAG/" ]]; then
+            echo "Error: Version mismatch between folder $dir and version tag $VERSION_TAG"
+            exit 1
+          fi
+          zip -r "${dir%/}.zip" "$dir"
+        done
+
+    - name: Release zipped database folders
+      uses: softprops/action-gh-release@v2
+      with:
+        files: database/*.zip
+        draft: true

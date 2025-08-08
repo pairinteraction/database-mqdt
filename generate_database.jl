@@ -58,6 +58,11 @@ MD = tri_to_full(md, ST)
 
 # store tables as parquet files
 output_dir = "$(directory)/$(species)_mqdt_$(version)"
+if overwrite
+    rm(output_dir, recursive = true, force = true)
+elseif isdir(output_dir)
+    error("Output directory already exists: $output_dir. Use --overwrite to overwrite.")
+end
 mkpath(output_dir)
 Parquet2.writefile("$(output_dir)/states.parquet", ST)
 Parquet2.writefile("$(output_dir)/matrix_elements_d.parquet", M1)

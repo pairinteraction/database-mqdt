@@ -1,11 +1,24 @@
 # Tool for generating the MQDT database tables in the cloud
 
-Database of states and matrix elements calculated with multichannel quantum defect theory. Database tables are available through [GitHub Releases](https://github.com/pairinteraction/database-mqdt/releases).
+Database of states and matrix elements calculated with multichannel quantum defect theory.
+Database tables are available through [GitHub Releases](https://github.com/pairinteraction/database-mqdt/releases).
 
 ## Generate new tables locally
-Run the script to generate the tables via
+To generate the database tables locally, first clone the MQDT.jl repository via
 
-...
+```bash
+git clone git@github.com:pairinteraction/MQDT.jl.git
+```
+
+Then, initialize the julia environment and link against the MQDT.jl package
+```bash
+julia --project=. -e 'import Pkg; Pkg.develop(path="MQDT.jl"); Pkg.instantiate()'
+```
+
+Finally, you can run the script to generate the tables via
+```bash
+julia --project=. generate_database.jl Yb174
+```
 
 ## Generate a new release
 To generate a new release with all the important tables, simply create and push a new annotated tag with a tag name of the form `v*.*` .

@@ -1,19 +1,50 @@
 using MQDT
 using CGcoefficient
 using Parquet2
+using ArgParse
 import Base.Filesystem: mkpath
 
 include("tables.jl")
-
 version = "v1.1"
-n_min = 20
-n_max = 30
-directory = "database"
-overwrite = true
 
-species = ARGS[1] # get species from command line argument
-species = replace(species, r"_mqdt$" => "")
-species = Symbol(species)
+function parse_commandline()
+    s = ArgParseSettings(
+        description = "Generate a database, containing energies and matrix elements, for a given species.",
+        epilog = "Example:\n  julia --project=. generate_database.jl Yb174",
+    )
+
+    @add_arg_table! s begin
+        "species"
+        help = "The species to generate the database for"
+        required = true
+        arg_type = String
+        "--n-min"
+        help = "The minimal principal quantum number n for the states to be included in the database."
+        default = 30
+        arg_type = Int
+        "--n-max"
+        help = "The maximum principal quantum number n for the states to be included in the database."
+        default = 40
+        arg_type = Int
+        "--directory"
+        help = "The directory where the database will be saved"
+        default = "database"
+        arg_type = String
+        "--overwrite"
+        help = "Delete the species folder if it exists and create a new one"
+        action = :store_true
+    end
+
+    return parse_args(s)
+end
+
+# Parse command line arguments
+args = parse_commandline()
+n_min = args["n-min"]
+n_max = args["n-max"]
+directory = args["directory"]
+overwrite = args["overwrite"]
+species = Symbol(args["species"])
 
 # initialize Wigner symbols
 CGcoefficient.wigner_init_float(n_max, "Jmax", 9) # initialize Wigner symbol caluclation

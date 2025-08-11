@@ -86,7 +86,7 @@ function main()
 
     @info "Calculating low ℓ MQDT states..."
     models = MODELS_TABLE[species]
-    @time states = [eigenstates(n_min, n_max, M, parameters) for M in models]
+    @timelog states = [eigenstates(n_min, n_max, M, parameters) for M in models]
 
     if args["skip-high-l"]
         @info "Skipping high ℓ states."
@@ -95,7 +95,7 @@ function main()
         l_max = n_max - 1
         l_start = FMODEL_MAX_L[species] + 1
         high_l_models = single_channel_models(l_start:l_max, parameters)
-        @time high_l_states =
+        @timelog high_l_states =
             [eigenstates(n_min, n_max, M, parameters) for M in high_l_models]
         states = vcat(states, high_l_states)
         models = vcat(models, high_l_models)
@@ -106,7 +106,7 @@ function main()
     @info "Generated state table with $(nrow(state_table)) states"
 
     @info "Calculating matrix elements..."
-    @time row_col_value_dict = all_matrix_element(basis, parameters)
+    @timelog row_col_value_dict = all_matrix_element(basis, parameters)
 
     @info "Converting matrix elements to database table..."
     m1 = rcv_to_df(row_col_value_dict["dipole"])
@@ -129,7 +129,7 @@ function main()
     for (name, table) in tables
         @info "$(table.desc) info" rows=nrow(table.data)
         @info describe(table.data)
-        @time Parquet2.writefile("$(output_dir)/$(name).parquet", table.data)
+        @timelog Parquet2.writefile("$(output_dir)/$(name).parquet", table.data)
     end
 
     elapsed_time = round(time() - start_time, digits = 2)

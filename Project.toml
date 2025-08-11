@@ -2,6 +2,7 @@
 ArgParse = "c7e460c6-2fb9-53a9-8c5b-16f535851c63"
 CGcoefficient = "c862aa61-d51e-47d1-b396-b1e789b4e0b6"
 DataFrames = "a93c6f00-e57d-5684-b7b6-d8193f3e46c0"
+LoggingExtras = "e6f89c97-d47a-5376-807f-9c37f3926c36"
 MQDT = "1bfeae05-7215-4237-8fdd-b424babe7f02"
 OrderedCollections = "bac558e1-5e72-5ebc-8fee-abe8a469f55d"
 Parquet2 = "98572fba-bba0-415d-956f-fa77e587d26d"

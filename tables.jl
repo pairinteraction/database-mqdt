@@ -72,6 +72,10 @@ const MODELS_TABLE = Dict(
         MQDT.Yb174.FMODEL_HIGHN_G5,
     ],
 )
+
+const FMODEL_MAX_L = Dict(:Sr87 => 2, :Sr88 => 2, :Yb171 => 4, :Yb173 => 1, :Yb174 => 4)
+
+
 const PARA_TABLE = Dict(
     :Sr87 => MQDT.Sr87.PARA,
     :Sr88 => MQDT.Sr88.PARA,

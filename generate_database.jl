@@ -36,6 +36,9 @@ function parse_commandline()
         "--overwrite"
         help = "Delete the species folder if it exists and create a new one"
         action = :store_true
+        "--skip-high-l"
+        help = "Include high angular momentum (l) states in the calculation"
+        action = :store_true
     end
 
     return parse_args(s)
@@ -65,19 +68,32 @@ function main()
     println("Parameters: n_min=$n_min, n_max=$n_max")
     start_time = time()
 
-    CGcoefficient.wigner_init_float(n_max, "Jmax", 9) # initialize Wigner symbol calculation
+    # initialize Wigner symbol calculation
+    if args["skip-high-l"]
+        CGcoefficient.wigner_init_float(FMODEL_MAX_L[species], "Jmax", 9)
+    else
+        CGcoefficient.wigner_init_float(n_max - 1, "Jmax", 9)
+    end
     parameters = PARA_TABLE[species]
 
     println("Calculating low ℓ MQDT states...")
-    low_l_models = MODELS_TABLE[species]
-    @time low_l_states = [eigenstates(n_min, n_max, M, parameters) for M in low_l_models]
+    models = MODELS_TABLE[species]
+    @time states = [eigenstates(n_min, n_max, M, parameters) for M in models]
 
-    println("Calculating high ℓ SQDT states...")
-    l_max = n_max - 1
-    high_l_models = single_channel_models(5:l_max, parameters)
-    @time high_l_states = [eigenstates(n_min, n_max, M, parameters) for M in high_l_models]
+    if args["skip-high-l"]
+        println("Skipping high ℓ states.")
+    else
+        println("Calculating high ℓ SQDT states...")
+        l_max = n_max - 1
+        l_start = FMODEL_MAX_L[species] + 1
+        high_l_models = single_channel_models(l_start:l_max, parameters)
+        @time high_l_states =
+            [eigenstates(n_min, n_max, M, parameters) for M in high_l_models]
+        states = vcat(states, high_l_states)
+        models = vcat(models, high_l_models)
+    end
 
-    basis = basisarray(vcat(low_l_states, high_l_states), vcat(low_l_models, high_l_models))
+    basis = basisarray(states, models)
     state_table = state_data(basis, parameters)
     println("Generated state table with $(nrow(state_table)) states")
 
@@ -94,7 +110,7 @@ function main()
     md = matrix_data(dd)
 
     println("Preparing database output...")
-    db = databasearray(vcat(low_l_states, high_l_states), vcat(low_l_models, high_l_models))
+    db = databasearray(states, models)
     st = state_data(db, parameters)
 
     println("Storing database tables as parquet files...")

@@ -5,6 +5,7 @@ using ArgParse
 import Base.Filesystem: mkpath
 using DataFrames
 using OrderedCollections
+using Logging, LoggingExtras
 
 
 include("tables.jl")
@@ -63,9 +64,14 @@ function main()
     end
     mkpath(output_dir)
 
+    # Setup logging to both file and console
+    console_logger = ConsoleLogger(stdout)
+    file_logger = SimpleLogger(open("$(output_dir)/$(species).log", "w"))
+    combined_logger = TeeLogger(console_logger, file_logger)
+    global_logger(combined_logger)
 
-    println("Starting database generation for $species with version $version")
-    println("Parameters: n_min=$n_min, n_max=$n_max")
+    @info "Starting database generation for $species with version $version"
+    @info "Parameters: n_min=$n_min, n_max=$n_max"
     start_time = time()
 
     # initialize Wigner symbol calculation
@@ -76,14 +82,14 @@ function main()
     end
     parameters = PARA_TABLE[species]
 
-    println("Calculating low ℓ MQDT states...")
+    @info "Calculating low ℓ MQDT states..."
     models = MODELS_TABLE[species]
     @time states = [eigenstates(n_min, n_max, M, parameters) for M in models]
 
     if args["skip-high-l"]
-        println("Skipping high ℓ states.")
+        @info "Skipping high ℓ states."
     else
-        println("Calculating high ℓ SQDT states...")
+        @info "Calculating high ℓ SQDT states..."
         l_max = n_max - 1
         l_start = FMODEL_MAX_L[species] + 1
         high_l_models = single_channel_models(l_start:l_max, parameters)
@@ -95,25 +101,25 @@ function main()
 
     basis = basisarray(states, models)
     state_table = state_data(basis, parameters)
-    println("Generated state table with $(nrow(state_table)) states")
+    @info "Generated state table with $(nrow(state_table)) states"
 
-    println("Calculating matrix elements...")
+    @info "Calculating matrix elements..."
     @time d1 = matrix_element(1, basis) # dipole
     @time d2 = matrix_element(2, basis) # quadrupole
     @time dm = matrix_element(parameters, basis) # Zeeman
     @time dd = matrix_element(basis) # diamagnetic
 
-    println("Converting matrix elements to database table...")
+    @info "Converting matrix elements to database table..."
     m1 = matrix_data(d1)
     m2 = matrix_data(d2)
     mm = matrix_data(dm)
     md = matrix_data(dd)
 
-    println("Preparing database output...")
+    @info "Preparing database output..."
     db = databasearray(states, models)
     st = state_data(db, parameters)
 
-    println("Storing database tables as parquet files...")
+    @info "Storing database tables as parquet files..."
     tables = OrderedDict(
         "states" => (data = st, desc = "States table"),
         "matrix_elements_d" => (data = m1, desc = "Dipole matrix elements"),
@@ -122,15 +128,14 @@ function main()
         "matrix_elements_q0" => (data = md, desc = "Diamagnetic matrix elements"),
     )
     for (name, table) in tables
-        println("\n$(table.desc) info:")
-        println("Number of rows: $(nrow(table.data))")
-        println(describe(table.data))
+        @info "$(table.desc) info" rows=nrow(table.data)
+        @info describe(table.data)
         @time Parquet2.writefile("$(output_dir)/$(name).parquet", table.data)
     end
 
     elapsed_time = round(time() - start_time, digits = 2)
-    println("Database generation completed after in total $elapsed_time seconds")
-    println("Output saved to: $output_dir")
+    @info "Database generation completed" elapsed_seconds=elapsed_time
+    @info "Output saved to: $output_dir"
 
 end
 

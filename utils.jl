@@ -1,5 +1,16 @@
 import MQDT
 
+
+macro timelog(expr)
+    quote
+        local result, elapsed_time, bytes_allocated, gc_time, memory_counters =
+            @timed $(esc(expr))
+        @info "$(round(elapsed_time, digits=6)) seconds (allocations: $(Base.format_bytes(bytes_allocated)), $(round(100 * gc_time / elapsed_time, digits=2))% gc time)"
+        result
+    end
+end
+
+
 function all_matrix_element(B::BasisArray, parameters::MQDT.Parameters)
     """Calculate all relevant matrix elements for a given basis array B.
 

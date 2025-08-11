@@ -95,21 +95,15 @@ function main()
 
     println("Preparing database output...")
     db = databasearray(vcat(low_l_states, high_l_states), vcat(low_l_models, high_l_models))
-    ST = state_data(db, parameters)
-
-    println("Convert upper triangle matrix to full matrix...")
-    @time M1 = tri_to_full(m1, ST)
-    @time M2 = tri_to_full(m2, ST)
-    @time MM = tri_to_full(mm, ST)
-    @time MD = tri_to_full(md, ST)
+    st = state_data(db, parameters)
 
     println("Storing database tables as parquet files...")
     tables = OrderedDict(
-        "states" => (data = ST, desc = "States table"),
-        "matrix_elements_d" => (data = M1, desc = "Dipole matrix elements"),
-        "matrix_elements_q" => (data = M2, desc = "Quadrupole matrix elements"),
-        "matrix_elements_mu" => (data = MM, desc = "Magnetic matrix elements"),
-        "matrix_elements_q0" => (data = MD, desc = "Diamagnetic matrix elements"),
+        "states" => (data = st, desc = "States table"),
+        "matrix_elements_d" => (data = m1, desc = "Dipole matrix elements"),
+        "matrix_elements_q" => (data = m2, desc = "Quadrupole matrix elements"),
+        "matrix_elements_mu" => (data = mm, desc = "Magnetic matrix elements"),
+        "matrix_elements_q0" => (data = md, desc = "Diamagnetic matrix elements"),
     )
     for (name, table) in tables
         println("\n$(table.desc) info:")

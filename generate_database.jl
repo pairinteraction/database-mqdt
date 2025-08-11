@@ -76,7 +76,7 @@ function main()
 
     # initialize Wigner symbol calculation
     if args["skip-high-l"]
-        CGcoefficient.wigner_init_float(FMODEL_MAX_L[species], "Jmax", 9)
+        CGcoefficient.wigner_init_float(max(FMODEL_MAX_L[species], 5), "Jmax", 9)
     else
         CGcoefficient.wigner_init_float(n_max - 1, "Jmax", 9)
     end

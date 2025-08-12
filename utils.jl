@@ -14,14 +14,18 @@ function all_matrix_element(B::BasisArray, parameters::MQDT.Parameters)
         "diamagnetic" => Tuple{Int64,Int64,Float64}[],
     )
 
-    indexed_states = [(ids, state) for (ids, state) in enumerate(B.states)]
-    sorted_states =
-        sort(indexed_states, by = x -> (minimum(x[2].lr), minimum(x[2].nu), x[1]))
+    states_indexed = [(ids, state) for (ids, state) in enumerate(B.states)]
+    states_sorted =
+        sort(states_indexed, by = x -> (minimum(x[2].lr), minimum(x[2].nu), x[1]))
 
-    for (i1, (id1, b1)) in enumerate(sorted_states)
-        # TODO filter to include only states with similar l (via k_angular_max)
+    for (i1, (id1, b1)) in enumerate(states_sorted)
+        for (id2, b2) in states_sorted[i1:end]
 
-        for (id2, b2) in sorted_states[i1:end]
+            # Skip if all contributions of the two states are far apart in angular momentum
+            if minimum(b2.lr) - maximum(b1.lr) > k_angular_max
+                continue
+            end
+
             # TODO
             # if all(n > all_n_up_to for n in [n1, n2]) && abs(n1 - n2) > max_delta_n
             #     continue

@@ -13,13 +13,15 @@ jobs:
       fail-fast: false
       matrix:
         species: [Sr87, Sr88, Yb171, Yb173, Yb174]
-        include:  # the following species are not working yet with high \ell
+        include:
+          - extra_args: "--n-max 220"
+          # FIXME: the following species do not yet support high \ell states
           - species: Sr87
-            extra_args: "--skip-high-l"
+            extra_args: "--n-max 220 --skip-high-l"
           - species: Yb171
-            extra_args: "--skip-high-l"
+            extra_args: "--n-max 220 --skip-high-l"
           - species: Yb173
-            extra_args: "--skip-high-l"
+            extra_args: "--n-max 130 --skip-high-l"  # FIXME: Yb173 fails for n > 130
     name: ${{ matrix.species }}
     runs-on: ubuntu-latest
     timeout-minutes: 300
@@ -45,7 +47,7 @@ jobs:
       run: julia --project=. -e 'import Pkg; Pkg.develop(path="MQDT.jl"); Pkg.instantiate()'
 
     - name: Run generate_database
-      run: julia --project=. generate_database.jl ${{ matrix.species }} --directory database --n-max 220 ${{ matrix.extra_args }}
+      run: julia --project=. generate_database.jl ${{ matrix.species }} --directory database ${{ matrix.extra_args }}
 
     - name: Upload artifacts
       uses: actions/upload-artifact@v4

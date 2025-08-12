@@ -6,6 +6,7 @@ import Base.Filesystem: mkpath
 using DataFrames
 using OrderedCollections
 using Logging, LoggingExtras
+using LRUCache
 
 
 include("utils.jl")
@@ -105,13 +106,13 @@ function main()
     @info "Generated state table with $(nrow(state_table)) states"
 
     @info "Calculating matrix elements..."
-    @time (d1, d2, dm, dd) = all_matrix_element(basis, parameters)
+    @time row_col_value_dict = all_matrix_element(basis, parameters)
 
     @info "Converting matrix elements to database table..."
-    m1 = matrix_data(d1)
-    m2 = matrix_data(d2)
-    mm = matrix_data(dm)
-    md = matrix_data(dd)
+    m1 = rcv_to_df(row_col_value_dict["dipole"])
+    m2 = rcv_to_df(row_col_value_dict["quadrupole"])
+    mm = rcv_to_df(row_col_value_dict["magnetic"])
+    md = rcv_to_df(row_col_value_dict["diamagnetic"])
 
     @info "Preparing database output..."
     db = databasearray(states, models)
@@ -134,6 +135,15 @@ function main()
     elapsed_time = round(time() - start_time, digits = 2)
     @info "Database generation completed" elapsed_seconds=elapsed_time
     @info "Output saved to: $output_dir"
+
+    @info "Cache information MQDT.lru_radial_moment:"
+    @info cache_info(MQDT.lru_radial_moment)
+    @info "Cache information MQDT.lru_get_rydberg_state:"
+    @info cache_info(MQDT.lru_get_rydberg_state)
+    @info "Cache information MQDT.lru_angular_matrix:"
+    @info cache_info(MQDT.lru_angular_matrix)
+    @info "Cache information MQDT.lru_magnetic_matrix:"
+    @info cache_info(MQDT.lru_magnetic_matrix)
 
 end
 

@@ -8,6 +8,7 @@ using OrderedCollections
 using Logging, LoggingExtras
 
 
+include("utils.jl")
 include("tables.jl")
 version = "v1.1"
 
@@ -104,10 +105,7 @@ function main()
     @info "Generated state table with $(nrow(state_table)) states"
 
     @info "Calculating matrix elements..."
-    @time d1 = matrix_element(1, basis) # dipole
-    @time d2 = matrix_element(2, basis) # quadrupole
-    @time dm = matrix_element(parameters, basis) # Zeeman
-    @time dd = matrix_element(basis) # diamagnetic
+    @time (d1, d2, dm, dd) = all_matrix_element(basis, parameters)
 
     @info "Converting matrix elements to database table..."
     m1 = matrix_data(d1)
@@ -138,5 +136,6 @@ function main()
     @info "Output saved to: $output_dir"
 
 end
+
 
 main()

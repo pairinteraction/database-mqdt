@@ -102,29 +102,25 @@ function main()
     end
 
     basis = basisarray(states, models)
-    state_table = state_data(basis, parameters)
-    @info "Generated state table with $(nrow(state_table)) states"
+    database_states = databasearray(states, models)
+    @info "Generated state table with $(length(basis.states)) states"
+
+    @info "Converting states to database table..."
+    states_df = databasearray_to_df(database_states, parameters)
 
     @info "Calculating matrix elements..."
     @timelog row_col_value_dict = all_matrix_element(basis, parameters)
 
     @info "Converting matrix elements to database table..."
-    m1 = rcv_to_df(row_col_value_dict["dipole"])
-    m2 = rcv_to_df(row_col_value_dict["quadrupole"])
-    mm = rcv_to_df(row_col_value_dict["magnetic"])
-    md = rcv_to_df(row_col_value_dict["diamagnetic"])
-
-    @info "Preparing database output..."
-    db = databasearray(states, models)
-    st = state_data(db, parameters)
+    matrix_elements_df_dict = Dict(k => rcv_to_df(v) for (k, v) in row_col_value_dict)
 
     @info "Storing database tables as parquet files..."
     tables = OrderedDict(
-        "states" => (data = st, desc = "States table"),
-        "matrix_elements_d" => (data = m1, desc = "Dipole matrix elements"),
-        "matrix_elements_q" => (data = m2, desc = "Quadrupole matrix elements"),
-        "matrix_elements_mu" => (data = mm, desc = "Magnetic matrix elements"),
-        "matrix_elements_q0" => (data = md, desc = "Diamagnetic matrix elements"),
+        "states" => (data = states_df, desc = "States table"),
+        "matrix_elements_d" => (data = matrix_elements_df_dict["dipole"], desc = "Dipole matrix elements"),
+        "matrix_elements_q" => (data = matrix_elements_df_dict["quadrupole"], desc = "Quadrupole matrix elements"),
+        "matrix_elements_mu" => (data = matrix_elements_df_dict["magnetic"], desc = "Magnetic matrix elements"),
+        "matrix_elements_q0" => (data = matrix_elements_df_dict["diamagnetic"], desc = "Diamagnetic matrix elements"),
     )
     for (name, table) in tables
         @info "$(table.desc) info" rows=nrow(table.data)

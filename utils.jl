@@ -1,6 +1,6 @@
 import MQDT
 
-const START_ID = 1
+const START_ID = 0
 
 macro timelog(expr)
     quote

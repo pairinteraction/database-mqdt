@@ -115,17 +115,11 @@ function main()
     matrix_elements_df_dict = Dict(k => rcv_to_df(v) for (k, v) in row_col_value_dict)
 
     @info "Storing database tables as parquet files..."
-    tables = OrderedDict(
-        "states" => (data = states_df, desc = "States table"),
-        "matrix_elements_d" => (data = matrix_elements_df_dict["dipole"], desc = "Dipole matrix elements"),
-        "matrix_elements_q" => (data = matrix_elements_df_dict["quadrupole"], desc = "Quadrupole matrix elements"),
-        "matrix_elements_mu" => (data = matrix_elements_df_dict["magnetic"], desc = "Magnetic matrix elements"),
-        "matrix_elements_q0" => (data = matrix_elements_df_dict["diamagnetic"], desc = "Diamagnetic matrix elements"),
-    )
+    tables = merge(Dict("states" => states_df), matrix_elements_df_dict)
     for (name, table) in tables
-        @info "$(table.desc) info" rows=nrow(table.data)
-        @info describe(table.data)
-        @timelog Parquet2.writefile("$(output_dir)/$(name).parquet", table.data)
+        @info "$(name) info" rows=nrow(table)
+        @info describe(table)
+        @timelog Parquet2.writefile("$(output_dir)/$(name).parquet", table)
     end
 
     elapsed_time = round(time() - start_time, digits = 2)

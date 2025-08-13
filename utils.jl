@@ -20,10 +20,10 @@ function all_matrix_element(B::BasisArray, parameters::MQDT.Parameters)
     k_angular_max = 2  # 2 for now, since we dont calculate octupole matrix elements
 
     row_col_value = Dict(
-        "dipole" => Tuple{Int64,Int64,Float64}[],
-        "quadrupole" => Tuple{Int64,Int64,Float64}[],
-        "magnetic" => Tuple{Int64,Int64,Float64}[],
-        "diamagnetic" => Tuple{Int64,Int64,Float64}[],
+        "matrix_elements_d" => Tuple{Int64,Int64,Float64}[],
+        "matrix_elements_q" => Tuple{Int64,Int64,Float64}[],
+        "matrix_elements_mu" => Tuple{Int64,Int64,Float64}[],
+        "matrix_elements_q0" => Tuple{Int64,Int64,Float64}[],
     )
 
     states_indexed = [(ids - 1 + START_ID, state) for (ids, state) in enumerate(B.states)]
@@ -43,51 +43,51 @@ function all_matrix_element(B::BasisArray, parameters::MQDT.Parameters)
             #     continue
             # end
 
-            value_dipole = MQDT.multipole_moment(1, b1, b2)
-            if value_dipole != 0
-                push!(row_col_value["dipole"], (id1, id2, value_dipole))
+            prefactor_transposed = (-1)^(b2.f - b1.f)
+
+            # dipole matrix element
+            v = MQDT.multipole_moment(1, b1, b2)
+            if v != 0
+                push!(row_col_value["matrix_elements_d"], (id1, id2, v))
+                if id1 != id2
+                    v *= prefactor_transposed
+                    push!(row_col_value["matrix_elements_d"], (id2, id1, v))
+                end
             end
 
-            value_quadrupole = MQDT.multipole_moment(2, b1, b2)
-            if value_quadrupole != 0
-                push!(row_col_value["quadrupole"], (id1, id2, value_quadrupole))
+            # quadrupole matrix element
+            v = MQDT.multipole_moment(2, b1, b2)
+            if v != 0
+                push!(row_col_value["matrix_elements_q"], (id1, id2, v))
+                if id1 != id2
+                    v *= prefactor_transposed
+                    push!(row_col_value["matrix_elements_q"], (id2, id1, v))
+                end
             end
 
-            value_magnetic = MQDT.magnetic_dipole_moment(
+            # magnetic matrix element
+            v = MQDT.magnetic_dipole_moment(
                 parameters.dipole,
                 parameters.mass,
                 parameters.spin,
                 b1,
                 b2,
             )
-            if value_magnetic != 0
-                push!(row_col_value["magnetic"], (id1, id2, value_magnetic))
+            if v != 0
+                push!(row_col_value["matrix_elements_mu"], (id1, id2, v))
+                if id1 != id2
+                    v *= prefactor_transposed
+                    push!(row_col_value["matrix_elements_mu"], (id2, id1, v))
+                end
             end
 
-            value_diamagnetic = MQDT.special_quadrupole_moment(b1, b2)
-            if value_diamagnetic != 0
-                push!(row_col_value["diamagnetic"], (id1, id2, value_diamagnetic))
-            end
-
-            if id1 != id2
-                prefactor = (-1)^(b2.f - b1.f)
-                if value_dipole != 0
-                    push!(row_col_value["dipole"], (id2, id1, prefactor * value_dipole))
-                end
-                if value_quadrupole != 0
-                    push!(
-                        row_col_value["quadrupole"],
-                        (id2, id1, prefactor * value_quadrupole),
-                    )
-                end
-                if value_magnetic != 0
-                    push!(row_col_value["magnetic"], (id2, id1, prefactor * value_magnetic))
-                end
-                if value_diamagnetic != 0
-                    push!(
-                        row_col_value["diamagnetic"],
-                        (id2, id1, prefactor * value_diamagnetic),
-                    )
+            # diamagnetic matrix element
+            v = MQDT.special_quadrupole_moment(b1, b2)
+            if v != 0
+                push!(row_col_value["matrix_elements_q0"], (id1, id2, v))
+                if id1 != id2
+                    v *= prefactor_transposed
+                    push!(row_col_value["matrix_elements_q0"], (id2, id1, v))
                 end
             end
 
@@ -109,7 +109,7 @@ end
 
 function databasearray_to_df(T::DataBaseArray, P::Parameters)
     df = DataFrame(
-        id = collect(START_ID:size(T) - 1 + START_ID),
+        id = collect(START_ID:(size(T)-1+START_ID)),
         energy = MQDT.get_e(T, P),
         parity = MQDT.get_p(T),
         n = MQDT.get_n(T, P),

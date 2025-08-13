@@ -26,11 +26,11 @@ function parse_commandline()
         arg_type = String
         "--n-min"
         help = "The minimal principal quantum number n for the states to be included in the database."
-        default = 20
+        default = 25
         arg_type = Int
         "--n-max"
         help = "The maximum principal quantum number n for the states to be included in the database."
-        default = 80
+        default = 90
         arg_type = Int
         "--directory"
         help = "The directory where the database will be saved"

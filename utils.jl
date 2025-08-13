@@ -1,5 +1,6 @@
 import MQDT
 
+const START_ID = 1
 
 macro timelog(expr)
     quote
@@ -25,7 +26,7 @@ function all_matrix_element(B::BasisArray, parameters::MQDT.Parameters)
         "diamagnetic" => Tuple{Int64,Int64,Float64}[],
     )
 
-    states_indexed = [(ids, state) for (ids, state) in enumerate(B.states)]
+    states_indexed = [(ids - 1 + START_ID, state) for (ids, state) in enumerate(B.states)]
     states_sorted =
         sort(states_indexed, by = x -> (minimum(x[2].lr), minimum(x[2].nu), x[1]))
 
@@ -103,5 +104,32 @@ function rcv_to_df(row_col_value::Vector{Tuple{Int64,Int64,Float64}})
     id_final = [m[2] for m in row_col_value]
     val = [m[3] for m in row_col_value]
     df = DataFrame(id_initial = id_initial, id_final = id_final, val = val)
+    return df
+end
+
+function databasearray_to_df(T::DataBaseArray, P::Parameters)
+    df = DataFrame(
+        id = collect(START_ID:size(T) - 1 + START_ID),
+        energy = MQDT.get_e(T, P),
+        parity = MQDT.get_p(T),
+        n = MQDT.get_n(T, P),
+        nu = MQDT.get_nu(T),
+        f = MQDT.get_f(T),
+        exp_nui = MQDT.exp_nui(T),
+        exp_l = MQDT.exp_L(T),
+        exp_j = MQDT.exp_J(T),
+        exp_s = MQDT.exp_S(T),
+        exp_l_ryd = MQDT.exp_lr(T),
+        exp_j_ryd = MQDT.exp_Jr(T),
+        std_nui = MQDT.std_nui(T),
+        std_l = MQDT.std_L(T),
+        std_j = MQDT.std_J(T),
+        std_s = MQDT.std_S(T),
+        std_l_ryd = MQDT.std_lr(T),
+        std_j_ryd = MQDT.std_Jr(T),
+        is_j_total_momentum = MQDT.is_J(T, P),
+        is_calculated_with_mqdt = MQDT.is_mqdt(T),
+        underspecified_channel_contribution = MQDT.get_neg(T),
+    )
     return df
 end

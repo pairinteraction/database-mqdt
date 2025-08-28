@@ -116,7 +116,8 @@ function get_n_min_from_model(model::fModel)
 
     m = match(r"ν\s*>\s*([0-9/\.]+)", model.name)
     if m === nothing
-        throw(ArgumentError("No match found for 'ν >' in string: $s"))
+        throw(ArgumentError("No match found for 'ν >' in string: $(model.name)"))
     end
-    return parse(Int64, m.captures[1]) + 1
+    n_min = parse(Float64, m.captures[1]) + 1
+    return ceil(Int, n_min)
 end

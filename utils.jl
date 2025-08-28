@@ -105,3 +105,18 @@ function databasearray_to_df(T::DataBaseArray, P::Parameters)
     )
     return df
 end
+
+
+function get_n_min_from_model(model::fModel)
+    """Get the minimum principal quantum number n_min from a given fModel.
+
+    The name of a fModel usually is something like "S J=0, ν > 2" or "S F=1/2, ν > 26",
+    from this we can extract n_min = 3.
+    """
+
+    m = match(r"ν\s*>\s*([0-9/\.]+)", model.name)
+    if m === nothing
+        throw(ArgumentError("No match found for 'ν >' in string: $s"))
+    end
+    return parse(Int64, m.captures[1]) + 1
+end

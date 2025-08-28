@@ -30,7 +30,8 @@ jobs:
       contents: read
     steps:
     - uses: actions/checkout@v5
-      submodules: 'true'
+      with:
+        submodules: 'true'
 
     - uses: julia-actions/setup-julia@v2
       with:

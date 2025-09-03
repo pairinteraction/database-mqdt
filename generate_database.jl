@@ -86,11 +86,18 @@ function main()
 
     @info "Calculating low ℓ MQDT states..."
     models = MODELS_TABLE[species]
-    @timelog states =
-        [eigenstates(get_n_min_from_model(M), n_max, M, parameters) for M in models]
+    states = Vector{EigenStates}(undef, length(models))
+    for (i, M) in enumerate(models)
+        nu_min, nu_max = get_nu_limits_from_model(M)
+        if nu_max === nothing
+            nu_max = n_max
+        end
+        @info String(M.name) + " " + String(nu_min) + " " + String(nu_max)
+        states[i] = eigenstates(nu_min, nu_max, M, parameters)
+    end
 
     if args["skip-high-l"]
-        @info "Skipping high ℓ states."
+        @info "Skipping high ℓ SQDT states."
     else
         @info "Calculating high ℓ SQDT states..."
         l_max = n_max - 1

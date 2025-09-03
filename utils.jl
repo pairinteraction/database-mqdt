@@ -43,51 +43,23 @@ function all_matrix_element(B::BasisArray, parameters::MQDT.Parameters)
             #     continue
             # end
 
+            m = MQDT.multipole_moments(b1, b2, parameters)
+            # multipole_moments returns the matrix elements in the following order
+            # electric dipole, electric quadrupole, diamagnetic, magnetic
+            table_keys = [
+                "matrix_elements_d",
+                "matrix_elements_q",
+                "matrix_elements_q0",
+                "matrix_elements_mu",
+            ]
             prefactor_transposed = (-1)^(b2.f - b1.f)
 
-            # dipole matrix element
-            v = MQDT.multipole_moment(1, b1, b2)
-            if v != 0
-                push!(row_col_value["matrix_elements_d"], (id1, id2, v))
-                if id1 != id2
-                    v *= prefactor_transposed
-                    push!(row_col_value["matrix_elements_d"], (id2, id1, v))
-                end
-            end
-
-            # quadrupole matrix element
-            v = MQDT.multipole_moment(2, b1, b2)
-            if v != 0
-                push!(row_col_value["matrix_elements_q"], (id1, id2, v))
-                if id1 != id2
-                    v *= prefactor_transposed
-                    push!(row_col_value["matrix_elements_q"], (id2, id1, v))
-                end
-            end
-
-            # magnetic matrix element
-            v = MQDT.magnetic_dipole_moment(
-                parameters.dipole,
-                parameters.mass,
-                parameters.spin,
-                b1,
-                b2,
-            )
-            if v != 0
-                push!(row_col_value["matrix_elements_mu"], (id1, id2, v))
-                if id1 != id2
-                    v *= prefactor_transposed
-                    push!(row_col_value["matrix_elements_mu"], (id2, id1, v))
-                end
-            end
-
-            # diamagnetic matrix element
-            v = MQDT.special_quadrupole_moment(b1, b2)
-            if v != 0
-                push!(row_col_value["matrix_elements_q0"], (id1, id2, v))
-                if id1 != id2
-                    v *= prefactor_transposed
-                    push!(row_col_value["matrix_elements_q0"], (id2, id1, v))
+            for (i, key) in enumerate(table_keys)
+                if m[i] != 0
+                    push!(row_col_value[key], (id1, id2, m[i]))
+                    if id1 != id2
+                        push!(row_col_value[key], (id2, id1, m[i] * prefactor_transposed))
+                    end
                 end
             end
 
@@ -132,4 +104,38 @@ function databasearray_to_df(T::DataBaseArray, P::Parameters)
         underspecified_channel_contribution = MQDT.get_neg(T),
     )
     return df
+end
+
+
+function get_nu_limits_from_model(model::fModel)
+    """Get the minimum and maximum effective principal quantum number (nu_min, nu_max) from a given fModel.
+
+    The name of a fModel usually is something like "S J=0, ν > 2" or "S F=1/2, ν > 26",
+    from this we can extract nu_min = 3 and nu_max nothing.
+
+    Some fModel names also contain a upper limit, e.g. Yb174.FMODEL_LOWN_P1: "P J=1, 1.7 < ν < 2.7",
+    from which we extract nu_min = 1.7 and nu_max = 2.7.
+    """
+
+    m = match(r"([0-9/\.]+)\s*<\s*ν\s*<\s*([0-9/\.]+)", model.name)
+    if m !== nothing
+        nu_min = parse(Float64, m.captures[1])
+        nu_min = ceil(Int, nu_min + 1)
+        nu_max = parse(Float64, m.captures[2])
+        nu_max = ceil(Int, nu_max)
+        return nu_min, nu_max
+    end
+
+    m = match(r"ν\s*>\s*([0-9/\.]+)", model.name)
+    if m !== nothing
+        nu_min = parse(Float64, m.captures[1])
+        nu_min = ceil(Int, nu_min + 1)
+        return nu_min, nothing
+    end
+
+    throw(
+        ArgumentError(
+            "No match found for 'ν > ...' or '... < ν < ...' in string: $(model.name)",
+        ),
+    )
 end

@@ -4,11 +4,7 @@ Database of states and matrix elements calculated with multichannel quantum defe
 Database tables are available through [GitHub Releases](https://github.com/pairinteraction/database-mqdt/releases).
 
 ## Generate new tables locally
-To generate the database tables locally, first clone the MQDT.jl repository via
-
-```bash
-git clone git@github.com:pairinteraction/MQDT.jl.git
-```
+To generate the database tables locally, first make sure you also downloaded MQDT.jl as submodule (e.g. run `git submodule update --init`).
 
 Then, initialize the julia environment and link against the MQDT.jl package
 ```bash

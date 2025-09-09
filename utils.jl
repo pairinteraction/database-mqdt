@@ -107,17 +107,35 @@ function databasearray_to_df(T::DataBaseArray, P::Parameters)
 end
 
 
-function get_n_min_from_model(model::fModel)
-    """Get the minimum principal quantum number n_min from a given fModel.
+function get_nu_limits_from_model(model::fModel)
+    """Get the minimum and maximum effective principal quantum number (nu_min, nu_max) from a given fModel.
 
     The name of a fModel usually is something like "S J=0, ν > 2" or "S F=1/2, ν > 26",
-    from this we can extract n_min = 3.
+    from this we can extract nu_min = 3 and nu_max nothing.
+
+    Some fModel names also contain a upper limit, e.g. Yb174.FMODEL_LOWN_P1: "P J=1, 1.7 < ν < 2.7",
+    from which we extract nu_min = 1.7 and nu_max = 2.7.
     """
 
-    m = match(r"ν\s*>\s*([0-9/\.]+)", model.name)
-    if m === nothing
-        throw(ArgumentError("No match found for 'ν >' in string: $(model.name)"))
+    m = match(r"([0-9/\.]+)\s*<\s*ν\s*<\s*([0-9/\.]+)", model.name)
+    if m !== nothing
+        nu_min = parse(Float64, m.captures[1])
+        nu_min = ceil(Int, nu_min + 1)
+        nu_max = parse(Float64, m.captures[2])
+        nu_max = ceil(Int, nu_max)
+        return nu_min, nu_max
     end
-    n_min = parse(Float64, m.captures[1]) + 1
-    return ceil(Int, n_min)
+
+    m = match(r"ν\s*>\s*([0-9/\.]+)", model.name)
+    if m !== nothing
+        nu_min = parse(Float64, m.captures[1])
+        nu_min = ceil(Int, nu_min + 1)
+        return nu_min, nothing
+    end
+
+    throw(
+        ArgumentError(
+            "No match found for 'ν > ...' or '... < ν < ...' in string: $(model.name)",
+        ),
+    )
 end

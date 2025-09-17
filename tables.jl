@@ -56,6 +56,7 @@ const MODELS_TABLE = Dict(
         MQDT.Yb173.FMODEL_HIGHN_P45,
     ],
     :Yb174 => [
+        MQDT.Yb174.FMODEL_LOWN_P1,
         MQDT.Yb174.FMODEL_HIGHN_S0,
         MQDT.Yb174.FMODEL_HIGHN_S1,
         MQDT.Yb174.FMODEL_HIGHN_P0,

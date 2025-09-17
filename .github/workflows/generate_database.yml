@@ -21,7 +21,7 @@ jobs:
           - species: Yb171
             extra_args: "--n-max 220 --skip-high-l"
           - species: Yb173
-            extra_args: "--n-max 130 --skip-high-l"  # FIXME: Yb173 fails for n > 130
+            extra_args: "--n-max 115 --skip-high-l"  # FIXME: Yb173 fails for n > 115
     name: ${{ matrix.species }}
     runs-on: ubuntu-latest
     timeout-minutes: 300

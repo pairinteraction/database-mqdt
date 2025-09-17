@@ -2,6 +2,7 @@ using MQDT
 
 const MODELS_TABLE = Dict(
     :Sr87 => [
+        MQDT.Sr87.FMODEL_LOWN_P45,
         MQDT.Sr87.FMODEL_HIGHN_S35,
         MQDT.Sr87.FMODEL_HIGHN_S45,
         MQDT.Sr87.FMODEL_HIGHN_S55,
@@ -17,8 +18,10 @@ const MODELS_TABLE = Dict(
         MQDT.Sr87.FMODEL_HIGHN_D55,
         MQDT.Sr87.FMODEL_HIGHN_D65,
         MQDT.Sr87.FMODEL_HIGHN_D75,
+        MQDT.Sr87.FMODEL_HIGHN_F45,
     ],
     :Sr88 => [
+        MQDT.Sr88.FMODEL_LOWN_P1,
         MQDT.Sr88.FMODEL_HIGHN_S0,
         MQDT.Sr88.FMODEL_HIGHN_S1,
         MQDT.Sr88.FMODEL_HIGHN_P0,
@@ -27,6 +30,9 @@ const MODELS_TABLE = Dict(
         MQDT.Sr88.FMODEL_HIGHN_D1,
         MQDT.Sr88.FMODEL_HIGHN_D2,
         MQDT.Sr88.FMODEL_HIGHN_D3,
+        MQDT.Sr88.FMODEL_HIGHN_F2,
+        MQDT.Sr88.FMODEL_HIGHN_F3,
+        MQDT.Sr88.FMODEL_HIGHN_F4,
     ],
     :Yb171 => [
         MQDT.Yb171.FMODEL_HIGHN_S05,
@@ -56,6 +62,7 @@ const MODELS_TABLE = Dict(
         MQDT.Yb173.FMODEL_HIGHN_P45,
     ],
     :Yb174 => [
+        MQDT.Yb174.FMODEL_LOWN_P1,
         MQDT.Yb174.FMODEL_HIGHN_S0,
         MQDT.Yb174.FMODEL_HIGHN_S1,
         MQDT.Yb174.FMODEL_HIGHN_P0,
@@ -73,7 +80,7 @@ const MODELS_TABLE = Dict(
     ],
 )
 
-const FMODEL_MAX_L = Dict(:Sr87 => 2, :Sr88 => 2, :Yb171 => 4, :Yb173 => 1, :Yb174 => 4)
+const FMODEL_MAX_L = Dict(:Sr87 => 3, :Sr88 => 3, :Yb171 => 4, :Yb173 => 1, :Yb174 => 4)
 
 
 const PARA_TABLE = Dict(

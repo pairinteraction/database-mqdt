@@ -11,7 +11,7 @@ using LRUCache
 
 include("utils.jl")
 include("tables.jl")
-version = "v1.1"
+version = "v1.2"
 
 function parse_commandline()
     s = ArgParseSettings(

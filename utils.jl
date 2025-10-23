@@ -81,26 +81,26 @@ function rcv_to_df(row_col_value::Vector{Tuple{Int64,Int64,Float64}})
     return df
 end
 
-function databasearray_to_df(T::DataBaseArray, P::Parameters)
+function basis_to_df(T::BasisArray, P::Parameters)
     df = DataFrame(
         id = collect(START_ID:(size(T)-1+START_ID)),
-        energy = MQDT.get_e(T, P),
+        energy = MQDT.get_e(T, P) / 219474.6313632,  # convert 1/cm to atomic units
         parity = MQDT.get_p(T),
         n = MQDT.get_n(T, P),
         nu = MQDT.get_nu(T),
         f = MQDT.get_f(T),
         exp_nui = MQDT.exp_nui(T),
-        exp_l = MQDT.exp_L(T),
-        exp_j = MQDT.exp_J(T),
-        exp_s = MQDT.exp_S(T),
-        exp_l_ryd = MQDT.exp_lr(T),
-        exp_j_ryd = MQDT.exp_Jr(T),
+        exp_l = MQDT.calc_exp_qn(T, "l_tot"),
+        exp_j = MQDT.calc_exp_qn(T, "j_tot"),
+        exp_s = MQDT.calc_exp_qn(T, "s_tot"),
+        exp_l_ryd = MQDT.calc_exp_qn(T, "l_r"),
+        exp_j_ryd = MQDT.calc_exp_qn(T, "j_r"),
         std_nui = MQDT.std_nui(T),
-        std_l = MQDT.std_L(T),
-        std_j = MQDT.std_J(T),
-        std_s = MQDT.std_S(T),
-        std_l_ryd = MQDT.std_lr(T),
-        std_j_ryd = MQDT.std_Jr(T),
+        std_l = MQDT.calc_std_qn(T, "l_tot"),
+        std_j = MQDT.calc_std_qn(T, "j_tot"),
+        std_s = MQDT.calc_std_qn(T, "s_tot"),
+        std_l_ryd = MQDT.calc_std_qn(T, "l_r"),
+        std_j_ryd = MQDT.calc_std_qn(T, "j_r"),
         is_j_total_momentum = MQDT.is_J(T, P),
         is_calculated_with_mqdt = MQDT.is_mqdt(T),
         underspecified_channel_contribution = MQDT.get_neg(T),

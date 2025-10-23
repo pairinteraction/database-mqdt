@@ -1,6 +1,7 @@
 [deps]
 ArgParse = "c7e460c6-2fb9-53a9-8c5b-16f535851c63"
 CGcoefficient = "c862aa61-d51e-47d1-b396-b1e789b4e0b6"
+CondaPkg = "992eb4ea-22a4-4c89-a5bb-47a3300528ab"
 DataFrames = "a93c6f00-e57d-5684-b7b6-d8193f3e46c0"
 LRUCache = "8ac3fa9e-de4c-5943-b1dc-09c6b5f20637"
 LoggingExtras = "e6f89c97-d47a-5376-807f-9c37f3926c36"

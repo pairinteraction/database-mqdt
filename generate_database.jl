@@ -102,11 +102,10 @@ function main()
     end
 
     basis = basisarray(states, models)
-    database_states = databasearray(states, models)
     @info "Generated state table with $(length(basis.states)) states"
 
     @info "Converting states to database table..."
-    states_df = databasearray_to_df(database_states, parameters)
+    states_df = basis_to_df(basis, parameters)
 
     @info "Calculating matrix elements..."
     @timelog row_col_value_dict = all_matrix_element(basis, parameters)

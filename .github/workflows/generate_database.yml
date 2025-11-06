@@ -14,7 +14,7 @@ jobs:
       matrix:
         species: [Sr87, Sr88, Yb171, Yb173, Yb174]
         include:
-          - extra_args: "--n-max 220"
+          - extra_args: "--n-max 120"
           - species: Yb173
             extra_args: "--n-max 115"  # FIXME: Yb173 fails for n > 115
     name: ${{ matrix.species }}

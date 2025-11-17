@@ -1,3 +1,6 @@
 [submodule "MQDT.jl"]
 	path = MQDT.jl
 	url = git@github.com:pairinteraction/MQDT.jl.git
+[submodule "rydstate"]
+	path = rydstate
+	url = git@github.com:pairinteraction/rydstate.git

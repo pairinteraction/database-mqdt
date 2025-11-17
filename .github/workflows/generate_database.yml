@@ -14,14 +14,16 @@ jobs:
       matrix:
         species: [Sr87, Sr88, Yb171, Yb173, Yb174]
         include:
-          - extra_args: "--n-max 220"
+          # use n_max=220 for tags and master, but only n_max=100 for PRs, etc.
+          - n_max: ${{ (startsWith(github.ref, 'refs/tags/') || contains(github.ref, 'master')) && 220 || 100 }}
           # FIXME: the following species do not yet support high \ell states
           - species: Sr87
-            extra_args: "--n-max 220 --skip-high-l"
+            extra_args: "--skip-high-l"
           - species: Yb171
-            extra_args: "--n-max 220 --skip-high-l"
+            extra_args: "--skip-high-l"
           - species: Yb173
-            extra_args: "--n-max 115 --skip-high-l"  # FIXME: Yb173 fails for n > 115
+            extra_args: "--skip-high-l"  # FIXME: Yb173 fails for n > 115
+            n_max: ${{ (startsWith(github.ref, 'refs/tags/') || contains(github.ref, 'master')) && 115 || 100 }}
     name: ${{ matrix.species }}
     runs-on: ubuntu-latest
     timeout-minutes: 300
@@ -43,7 +45,7 @@ jobs:
       run: julia --project=. -e 'import Pkg; Pkg.develop(path="MQDT.jl"); Pkg.instantiate()'
 
     - name: Run generate_database
-      run: julia --project=. generate_database.jl ${{ matrix.species }} --directory database ${{ matrix.extra_args }}
+      run: julia --project=. generate_database.jl ${{ matrix.species }} --directory database --n-max ${{ matrix.n_max }} ${{ matrix.extra_args }}
 
     - name: Upload artifacts
       uses: actions/upload-artifact@v5

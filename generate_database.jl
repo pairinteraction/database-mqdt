@@ -11,7 +11,7 @@ using LRUCache
 
 include("utils.jl")
 include("tables.jl")
-version = "v1.1"
+version = "v1.2"
 
 function parse_commandline()
     s = ArgParseSettings(
@@ -94,7 +94,11 @@ function main()
         @info "Calculating high ℓ SQDT states..."
         l_max = n_max - 1
         l_start = FMODEL_MAX_L[species] + 1
-        high_l_models = single_channel_models(species, l_start:l_max, parameters)
+        if species in (:Sr88, :Yb174)
+            high_l_models = single_channel_jj_models(species, l_start:l_max, parameters)
+        else
+            high_l_models = single_channel_fj_models(species, l_start:l_max, parameters)
+        end
         @timelog high_l_states =
             [eigenstates(n_min, n_max, M, parameters) for M in high_l_models]
         states = vcat(states, high_l_states)
@@ -102,11 +106,10 @@ function main()
     end
 
     basis = basisarray(states, models)
-    database_states = databasearray(states, models)
     @info "Generated state table with $(length(basis.states)) states"
 
     @info "Converting states to database table..."
-    states_df = databasearray_to_df(database_states, parameters)
+    states_df = basis_to_df(basis, parameters)
 
     @info "Calculating matrix elements..."
     @timelog row_col_value_dict = all_matrix_element(basis, parameters)

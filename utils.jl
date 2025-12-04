@@ -1,4 +1,6 @@
 import MQDT
+include("angular.jl")
+
 
 const START_ID = 0
 
@@ -12,7 +14,7 @@ macro timelog(expr)
 end
 
 
-function all_matrix_element(B::BasisArray, parameters::MQDT.Parameters)
+function all_matrix_element(B::MQDT.BasisArray, parameters::MQDT.Parameters)
     """Calculate all relevant matrix elements for a given basis array B.
 
     This means dipole, quadrupole, magnetic, and diamagnetic matrix elements.
@@ -81,26 +83,35 @@ function rcv_to_df(row_col_value::Vector{Tuple{Int64,Int64,Float64}})
     return df
 end
 
-function basis_to_df(T::BasisArray, P::Parameters)
+
+function get_n(T::MQDT.BasisArray)
+    # TODO for now just return round(nu)
+    # later calculate radial overlap with different sqdt states and take the corresponding n
+    nu = MQDT.get_nu(T)
+    return round.(Int, nu)
+end
+
+
+function basis_to_df(T::MQDT.BasisArray, P::MQDT.Parameters)
     df = DataFrame(
         id = collect(START_ID:(size(T)-1+START_ID)),
         energy = MQDT.get_e(T, P) / 219474.6313632,  # convert 1/cm to atomic units
         parity = MQDT.get_p(T),
-        n = MQDT.get_n(T, P),
+        n = get_n(T),
         nu = MQDT.get_nu(T),
         f = MQDT.get_f(T),
         exp_nui = MQDT.exp_nui(T),
-        exp_l = MQDT.calc_exp_qn(T, "l_tot"),
-        exp_j = MQDT.calc_exp_qn(T, "j_tot"),
-        exp_s = MQDT.calc_exp_qn(T, "s_tot"),
-        exp_l_ryd = MQDT.calc_exp_qn(T, "l_r"),
-        exp_j_ryd = MQDT.calc_exp_qn(T, "j_r"),
+        exp_l = calc_exp_qn(T, "l_tot"),
+        exp_j = calc_exp_qn(T, "j_tot"),
+        exp_s = calc_exp_qn(T, "s_tot"),
+        exp_l_ryd = calc_exp_qn(T, "l_r"),
+        exp_j_ryd = calc_exp_qn(T, "j_r"),
         std_nui = MQDT.std_nui(T),
-        std_l = MQDT.calc_std_qn(T, "l_tot"),
-        std_j = MQDT.calc_std_qn(T, "j_tot"),
-        std_s = MQDT.calc_std_qn(T, "s_tot"),
-        std_l_ryd = MQDT.calc_std_qn(T, "l_r"),
-        std_j_ryd = MQDT.calc_std_qn(T, "j_r"),
+        std_l = calc_std_qn(T, "l_tot"),
+        std_j = calc_std_qn(T, "j_tot"),
+        std_s = calc_std_qn(T, "s_tot"),
+        std_l_ryd = calc_std_qn(T, "l_r"),
+        std_j_ryd = calc_std_qn(T, "j_r"),
         is_j_total_momentum = MQDT.is_J(T, P),
         is_calculated_with_mqdt = MQDT.is_mqdt(T),
         underspecified_channel_contribution = MQDT.get_neg(T),

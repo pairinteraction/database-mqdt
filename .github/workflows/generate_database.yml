@@ -38,6 +38,9 @@ jobs:
         version: 1.11
         arch: x64
     - uses: julia-actions/cache@v2
+    - uses: julia-actions/julia-buildpkg@v1
+      with:
+        project: MQDT.jl
 
     - name: Instantiate julia environment
       run: julia --project=. -e 'import Pkg; Pkg.develop(path="MQDT.jl"); Pkg.instantiate()'

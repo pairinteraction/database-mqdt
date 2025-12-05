@@ -24,9 +24,9 @@ function parse_commandline()
         help = "The species to generate the database for"
         required = true
         arg_type = String
-        "--n-min"
-        help = "The minimal principal quantum number n for the states to be included in the database."
-        default = 25
+        "--n-min-high-l"
+        help = "The minimal principal quantum number n for the high angular momentum (l) states to be included in the database."
+        default = 15
         arg_type = Int
         "--n-max"
         help = "The maximum principal quantum number n for the states to be included in the database."
@@ -51,7 +51,7 @@ end
 function main()
     # Parse command line arguments
     args = parse_commandline()
-    n_min = args["n-min"]
+    n_min_high_l = args["n-min-high-l"]
     n_max = args["n-max"]
     directory = args["directory"]
     overwrite = args["overwrite"]
@@ -73,7 +73,7 @@ function main()
     global_logger(combined_logger)
 
     @info "Starting database generation for $species with version $version"
-    @info "Parameters: n_min=$n_min, n_max=$n_max"
+    @info "Parameters: n_min_high_l=$n_min_high_l, n_max=$n_max"
     start_time = time()
 
     # initialize Wigner symbol calculation
@@ -86,17 +86,27 @@ function main()
 
     @info "Calculating low ℓ MQDT states..."
     models = MODELS_TABLE[species]
-    @timelog states = [eigenstates(n_min, n_max, M, parameters) for M in models]
+    states = Vector{EigenStates}(undef, length(models))
+    for (i, M) in enumerate(models)
+        nu_min, nu_max = get_nu_limits_from_model(M)
+        if nu_max === nothing
+            nu_max = n_max
+        else
+            nu_max = min(nu_max, n_max)
+        end
+        @info "$(M.name): nu_min=$nu_min nu_max=$nu_max"
+        states[i] = eigenstates(nu_min, nu_max, M, parameters)
+    end
 
     if args["skip-high-l"]
-        @info "Skipping high ℓ states."
+        @info "Skipping high ℓ SQDT states."
     else
         @info "Calculating high ℓ SQDT states..."
         l_max = n_max - 1
         l_start = FMODEL_MAX_L[species] + 1
         high_l_models = single_channel_models(species, l_start:l_max, parameters)
         @timelog high_l_states =
-            [eigenstates(n_min, n_max, M, parameters) for M in high_l_models]
+            [eigenstates(n_min_high_l, n_max, M, parameters) for M in high_l_models]
         states = vcat(states, high_l_states)
         models = vcat(models, high_l_models)
     end

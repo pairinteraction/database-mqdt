@@ -30,20 +30,22 @@ function all_matrix_element(B::BasisArray, parameters::MQDT.Parameters)
     states_sorted =
         sort(states_indexed, by = x -> (minimum(x[2].lr), minimum(x[2].nu), x[1]))
 
-    for (i1, (id1, b1)) in enumerate(states_sorted)
-        for (id2, b2) in states_sorted[i1:end]
+    for (i1, (id1, s1)) in enumerate(states_sorted)
+        for (id2, s2) in states_sorted[i1:end]
 
             # Skip if all contributions of the two states are far apart in angular momentum
-            if minimum(b2.lr) - maximum(b1.lr) > k_angular_max
+            if minimum(s2.lr) - maximum(s1.lr) > k_angular_max
                 continue
             end
 
-            # TODO
-            # if all(n > all_n_up_to for n in [n1, n2]) && abs(n1 - n2) > max_delta_n
-            #     continue
-            # end
+            # Skip if all contributions of the two states are far apart in n and None of them is low-n
+            if all(abs(nui-nuj) >= 11 for nui in s1.nu for nuj in s2.nu) &&
+               all(nui > 25 for nui in s1.nu) &&
+               all(nuj > 25 for nuj in s2.nu)
+                continue
+            end
 
-            m = MQDT.multipole_moments(b1, b2, parameters)
+            m = MQDT.multipole_moments(s1, s2, parameters)
             # multipole_moments returns the matrix elements in the following order
             # electric dipole, electric quadrupole, diamagnetic, magnetic
             table_keys = [
@@ -52,7 +54,7 @@ function all_matrix_element(B::BasisArray, parameters::MQDT.Parameters)
                 "matrix_elements_q0",
                 "matrix_elements_mu",
             ]
-            prefactor_transposed = (-1)^(b2.f - b1.f)
+            prefactor_transposed = (-1)^(s2.f - s1.f)
 
             for (i, key) in enumerate(table_keys)
                 if m[i] != 0

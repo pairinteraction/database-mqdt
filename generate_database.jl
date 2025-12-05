@@ -91,8 +91,10 @@ function main()
         nu_min, nu_max = get_nu_limits_from_model(M)
         if nu_max === nothing
             nu_max = n_max
+        else
+            nu_max = min(nu_max, n_max)
         end
-        @info "$(M.name) $nu_min $nu_max"
+        @info "$(M.name): nu_min=$nu_min nu_max=$nu_max"
         states[i] = eigenstates(nu_min, nu_max, M, parameters)
     end
 

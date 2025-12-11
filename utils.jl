@@ -38,10 +38,12 @@ function all_matrix_element(B::BasisArray, parameters::MQDT.Parameters)
                 continue
             end
 
-            # TODO
-            # if all(n > all_n_up_to for n in [n1, n2]) && abs(n1 - n2) > max_delta_n
-            #     continue
-            # end
+            # Skip if all contributions of the two states are far apart in n and None of them is low-n
+            if all(abs(nu1-nu2) >= 11 for nu1 in b1.nu for nu2 in b2.nu) &&
+               all(nu1 > 25 for nu1 in b1.nu) &&
+               all(nu2 > 25 for nu2 in b2.nu)
+                continue
+            end
 
             m = MQDT.multipole_moments(b1, b2, parameters)
             # multipole_moments returns the matrix elements in the following order

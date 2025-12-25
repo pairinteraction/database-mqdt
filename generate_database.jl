@@ -94,7 +94,11 @@ function main()
         @info "Calculating high ℓ SQDT states..."
         l_max = n_max - 1
         l_start = FMODEL_MAX_L[species] + 1
-        high_l_models = single_channel_models(species, l_start:l_max)
+        if species in parameters.spin == 0
+            high_l_models = single_channel_jj_models(species, l_start:l_max)
+        else
+            high_l_models = single_channel_fj_models(species, l_start:l_max, parameters)
+        end
         @timelog high_l_states =
             [eigenstates(n_min, n_max, M, parameters) for M in high_l_models]
         states = vcat(states, high_l_states)

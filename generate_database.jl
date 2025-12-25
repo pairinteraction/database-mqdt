@@ -10,7 +10,8 @@ using LRUCache
 
 
 include("utils.jl")
-include("tables.jl")
+const FMODEL_MAX_L = Dict(:Sr87 => 3, :Sr88 => 3, :Yb171 => 4, :Yb173 => 1, :Yb174 => 4)
+
 version = "v1.1"
 
 function parse_commandline()
@@ -82,10 +83,18 @@ function main()
     else
         CGcoefficient.wigner_init_float(n_max - 1, "Jmax", 9)
     end
-    parameters = PARA_TABLE[species]
+
+    species_module = getfield(MQDT, species)
+    parameters = getfield(species_module, :PARA)
+    models = Vector{MQDT.fModel}()
+    for obj_name in names(species_module, all = true)
+        obj = getfield(species_module, obj_name)
+        if isa(obj, MQDT.fModel)
+            push!(models, obj)
+        end
+    end
 
     @info "Calculating low ℓ MQDT states..."
-    models = MODELS_TABLE[species]
     states = Vector{EigenStates}(undef, length(models))
     for (i, M) in enumerate(models)
         nu_min, nu_max = MQDT.get_nu_limits_from_model(M)
@@ -95,7 +104,7 @@ function main()
             nu_max = min(nu_max, n_max)
         end
         @info "$(M.name): nu_min=$nu_min nu_max=$nu_max"
-        states[i] = eigenstates(nu_min, nu_max, M, parameters)
+        states[i] = MQDT.eigenstates(nu_min, nu_max, M, parameters)
     end
 
     if args["skip-high-l"]
@@ -104,14 +113,14 @@ function main()
         @info "Calculating high ℓ SQDT states..."
         l_max = n_max - 1
         l_start = FMODEL_MAX_L[species] + 1
-        high_l_models = single_channel_models(species, l_start:l_max)
+        high_l_models = MQDT.single_channel_models(species, l_start:l_max)
         @timelog high_l_states =
-            [eigenstates(n_min_high_l, n_max, M, parameters) for M in high_l_models]
+            [MQDT.eigenstates(n_min_high_l, n_max, M, parameters) for M in high_l_models]
         states = vcat(states, high_l_states)
         models = vcat(models, high_l_models)
     end
 
-    basis = basisarray(states, models)
+    basis = MQDT.basisarray(states, models)
     @info "Generated state table with $(length(basis.states)) states"
 
     @info "Converting states to database table..."

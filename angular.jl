@@ -37,7 +37,8 @@ function get_state(basisstate::BasisState)
         qn = channels[i]
         kets[i] = get_ket(qn, basisstate.species)
     end
-    state = rydstate.angular.AngularState(basisstate.coeff, kets; warn_if_not_normalized = false)
+    coeff = basisstate.coefficients[findall(basisstate.model.core)]
+    state = rydstate.angular.AngularState(coeff, kets; warn_if_not_normalized = false)
     return state
 end
 

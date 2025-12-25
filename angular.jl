@@ -32,13 +32,21 @@ end
 function get_state(basisstate::BasisState)
     rydstate = pyimport("rydstate")
     channels = basisstate.channels.i
-    kets = Vector{Any}(undef, size(channels))
-    for i in eachindex(channels)
-        qn = channels[i]
-        kets[i] = get_ket(qn, basisstate.species)
+    kets = Any[]
+    coeffs = Float64[]
+    coefficients = basisstate.coefficients[findall(basisstate.model.core)]
+    for (i, qn) in enumerate(channels)
+        # TODO how to handle channels with not well defined Jc or Fc
+        if isa(qn, jjQuantumNumbers) && isnan(qn.Jc)
+            continue
+        end
+        if isa(qn, fjQuantumNumbers) && (isnan(qn.Jc) || isnan(qn.Fc))
+            continue
+        end
+        push!(kets, get_ket(qn, basisstate.species))
+        push!(coeffs, coefficients[i])
     end
-    coeff = basisstate.coefficients[findall(basisstate.model.core)]
-    state = rydstate.angular.AngularState(coeff, kets; warn_if_not_normalized = false)
+    state = rydstate.angular.AngularState(coeffs, kets; warn_if_not_normalized = false)
     return state
 end
 

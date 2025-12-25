@@ -10,7 +10,7 @@ using LRUCache
 
 
 include("utils.jl")
-include("tables.jl")
+
 version = "v1.1"
 
 function parse_commandline()
@@ -78,34 +78,48 @@ function main()
 
     # initialize Wigner symbol calculation
     if args["skip-high-l"]
-        CGcoefficient.wigner_init_float(max(FMODEL_MAX_L[species], 5), "Jmax", 9)
+        CGcoefficient.wigner_init_float(10, "Jmax", 9)
     else
         CGcoefficient.wigner_init_float(n_max - 1, "Jmax", 9)
     end
-    parameters = PARA_TABLE[species]
-    models = MODELS_TABLE[species]
 
-    if args["skip-high-l"]
-        @info "Skipping high ℓ SQDT models."
-        high_l_models = []
-    else
-        @info "Generating high ℓ SQDT models..."
-        l_max = n_max - 1
-        l_start = FMODEL_MAX_L[species] + 1
-        high_l_models = MQDT.single_channel_models(species, l_start:l_max)
-        models = vcat(models, high_l_models)
+    parameters = MQDT.get_species_parameters(species)
+    all_models = Vector{MQDT.fModel}()
+
+    s_r = 1 / 2
+    j_c = 1 / 2
+    i_c = parameters.spin
+    for l_r = 0:(n_max-1)
+        for j_r = abs(l_r-s_r):1:(l_r+s_r)
+            for f_c = abs(j_c-i_c):1:(j_c+i_c)
+                for f_tot = abs(f_c-j_r):1:(f_c+j_r)
+                    models = MQDT.get_fmodels(species, l_r, j_r, f_c, f_tot, parameters)
+                    for model in models
+                        if !any(m -> m.name == model.name, all_models)
+                            push!(all_models, model)
+                        end
+                    end
+                end
+            end
+        end
     end
 
     @info "Calculating MQDT states..."
-    states = Vector{MQDT.EigenStates}(undef, length(models))
-    for (i, M) in enumerate(models)
-        n_min = M in high_l_models ? n_min_high_l : NaN
+    states = Vector{MQDT.EigenStates}(undef, length(all_models))
+    for (i, M) in enumerate(all_models)
+        n_min = NaN
+        if startswith(M.name, "SQDT")
+            if args["skip-high-l"]
+                continue
+            end
+            n_min = n_min_high_l
+        end
         @info "$(M.name)"
         states[i] = MQDT.eigenstates(n_min, n_max, M, parameters)
         @info "  found nu_min=$(minimum(states[i].n)), nu_max=$(maximum(states[i].n)), total states=$(length(states[i].n))"
     end
 
-    basis = MQDT.basisarray(states, models)
+    basis = MQDT.basisarray(states, all_models)
     @info "Generated state table with $(length(basis.states)) states"
 
     @info "Converting states to database table..."

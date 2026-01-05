@@ -85,25 +85,24 @@ function main()
     parameters = PARA_TABLE[species]
     models = MODELS_TABLE[species]
 
-    @info "Calculating low ℓ MQDT states..."
-    states = Vector{MQDT.EigenStates}(undef, length(models))
-    for (i, M) in enumerate(models)
-        @info "$(M.name)"
-        states[i] = MQDT.eigenstates(NaN, n_max, M, parameters)
-        @info "  found nu_min=$(minimum(states[i].n)), nu_max=$(maximum(states[i].n)), total states=$(length(states[i].n))"
-    end
-
     if args["skip-high-l"]
-        @info "Skipping high ℓ SQDT states."
+        @info "Skipping high ℓ SQDT models."
+        high_l_models = []
     else
-        @info "Calculating high ℓ SQDT states..."
+        @info "Generating high ℓ SQDT models..."
         l_max = n_max - 1
         l_start = FMODEL_MAX_L[species] + 1
         high_l_models = MQDT.single_channel_models(species, l_start:l_max)
-        @timelog high_l_states =
-            [MQDT.eigenstates(n_min_high_l, n_max, M, parameters) for M in high_l_models]
-        states = vcat(states, high_l_states)
         models = vcat(models, high_l_models)
+    end
+
+    @info "Calculating MQDT states..."
+    states = Vector{MQDT.EigenStates}(undef, length(models))
+    for (i, M) in enumerate(models)
+        n_min = M in high_l_models ? n_min_high_l : NaN
+        @info "$(M.name)"
+        states[i] = MQDT.eigenstates(n_min, n_max, M, parameters)
+        @info "  found nu_min=$(minimum(states[i].n)), nu_max=$(maximum(states[i].n)), total states=$(length(states[i].n))"
     end
 
     basis = MQDT.basisarray(states, models)

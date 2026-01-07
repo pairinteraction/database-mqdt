@@ -16,14 +16,13 @@ jobs:
         include:
           # use n_max=220 for tags and main, but only n_max=110 for PRs, etc.
           - n_max: ${{ (startsWith(github.ref, 'refs/tags/') || contains(github.ref, 'main')) && 220 || 110 }}
-          # FIXME: the following species do not yet support high \ell states
+          # for isotopes with hyperfine structure, we only include high-l states up to n=110 (otherwise the database size gets too large)
           - species: Sr87
-            extra_args: "--skip-high-l"
+            extra_args: "--n-max-high-l 110"
           - species: Yb171
-            extra_args: "--skip-high-l"
+            extra_args: "--n-max-high-l 110"
           - species: Yb173
-            extra_args: "--skip-high-l"  # FIXME: Yb173 fails for n > 115
-            n_max: ${{ (startsWith(github.ref, 'refs/tags/') || contains(github.ref, 'main')) && 115 || 110 }}
+            extra_args: "--n-max-high-l 110"
     name: ${{ matrix.species }}
     runs-on: ubuntu-latest
     timeout-minutes: 300
@@ -37,7 +36,7 @@ jobs:
 
     - uses: julia-actions/setup-julia@v2
       with:
-        version: 1.11
+        version: 1.12
         arch: x64
     - uses: julia-actions/cache@v2
 

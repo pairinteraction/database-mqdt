@@ -14,7 +14,7 @@ jobs:
       matrix:
         species: [Sr87, Sr88, Yb171, Yb173, Yb174]
         include:
-          - extra_args: "--n-max 220"
+          - extra_args: "--n-max 220"  # test
           # FIXME: the following species do not yet support high \ell states
           - species: Sr87
             extra_args: "--n-max 220 --skip-high-l"

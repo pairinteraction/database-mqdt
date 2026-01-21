@@ -2,7 +2,7 @@ name: Generate Databases
 
 on:
   push:
-    branches: ["main"]
+    branches: ["main", "tmp"]
     tags: ["v*.*"]
   pull_request:
     types: [opened, reopened, synchronize]

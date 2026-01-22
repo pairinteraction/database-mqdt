@@ -123,13 +123,14 @@ function main()
     @info "Generated state table with $(length(basis.states)) states"
 
     @info "Converting states to database table..."
-    states_df = basis_to_df(basis, parameters)
+    @timelog states_df = basis_to_df(basis, parameters)
 
     @info "Calculating matrix elements..."
     @timelog row_col_value_dict = all_matrix_element(basis, parameters)
 
     @info "Converting matrix elements to database table..."
-    matrix_elements_df_dict = Dict(k => rcv_to_df(v) for (k, v) in row_col_value_dict)
+    @timelog matrix_elements_df_dict =
+        Dict(k => rcv_to_df(v) for (k, v) in row_col_value_dict)
 
     @info "Storing database tables as parquet files..."
     tables = merge(Dict("states" => states_df), matrix_elements_df_dict)

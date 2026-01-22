@@ -39,7 +39,10 @@ function all_matrix_element(B::MQDT.BasisArray, parameters::MQDT.Parameters)
         "matrix_elements_q0" => Tuple{Int64,Int64,Float64}[],
     )
 
-    states_indexed = [(ids - 1 + START_ID, state) for (ids, state) in enumerate(B.states)]
+    states_indexed = [(ids, state) for (ids, state) in enumerate(B.states)]
+    states_lr = [get_relevant_lr(s) for (_, s) in states_indexed]
+    states_nu = [get_relevant_nu(s) for (_, s) in states_indexed]
+
     states_sorted = sort(
         states_indexed,
         by = x ->
@@ -47,17 +50,16 @@ function all_matrix_element(B::MQDT.BasisArray, parameters::MQDT.Parameters)
     )
 
     for (i1, (id1, s1)) in enumerate(states_sorted)
-        lr1 = get_relevant_lr(s1)
-        nus1 = get_relevant_nu(s1)
+        lr1 = states_lr[id1]
+        nus1 = states_nu[id1]
         for (id2, s2) in states_sorted[i1:end]
-            lr2 = get_relevant_lr(s2)
-            nus2 = get_relevant_nu(s2)
-
+            lr2 = states_lr[id2]
             # Skip if all contributions of the two states are far apart in angular momentum
             if minimum(lr2) - maximum(lr1) > k_angular_max
                 continue
             end
 
+            nus2 = states_nu[id2]
             # Skip if all contributions of the two states are far apart in n and None of them is low-n
             if all(abs(nu1-nu2) >= 11 for nu1 in nus1 for nu2 in nus2) &&
                all(nu1 > 25 for nu1 in nus1) &&
@@ -78,9 +80,12 @@ function all_matrix_element(B::MQDT.BasisArray, parameters::MQDT.Parameters)
 
             for (i, key) in enumerate(table_keys)
                 if m[i] != 0
-                    push!(row_col_value[key], (id1, id2, m[i]))
+                    # start IDs from 0 for consistency with python
+                    _id1 = id1 - 1 + START_ID
+                    _id2 = id2 - 1 + START_ID
+                    push!(row_col_value[key], (_id1, _id2, m[i]))
                     if id1 != id2
-                        push!(row_col_value[key], (id2, id1, m[i] * prefactor_transposed))
+                        push!(row_col_value[key], (_id2, _id1, m[i] * prefactor_transposed))
                     end
                 end
             end

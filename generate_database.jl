@@ -10,6 +10,7 @@ using LRUCache
 
 
 include("utils.jl")
+HIGH_L = 10
 
 version = "v1.1"
 
@@ -24,13 +25,17 @@ function parse_commandline()
         help = "The species to generate the database for"
         required = true
         arg_type = String
-        "--n-min-high-l"
-        help = "The minimal principal quantum number n for the high angular momentum (l) states to be included in the database."
+        "--n-min-sqdt"
+        help = "The minimal principal quantum number n for the SQDT models to be included in the database."
         default = 25
         arg_type = Int
+        "--n-max-high-l"
+        help = "The maximal principal quantum number n for high angular momentum states (l > $HIGH_L) to be included in the database."
+        default = Inf
+        arg_type = Float64
         "--n-max"
         help = "The maximum principal quantum number n for the states to be included in the database."
-        default = 90
+        default = 110
         arg_type = Int
         "--directory"
         help = "The directory where the database will be saved"
@@ -38,9 +43,6 @@ function parse_commandline()
         arg_type = String
         "--overwrite"
         help = "Delete the species folder if it exists and create a new one"
-        action = :store_true
-        "--skip-high-l"
-        help = "Include high angular momentum (l) states in the calculation"
         action = :store_true
     end
 
@@ -51,8 +53,9 @@ end
 function main()
     # Parse command line arguments
     args = parse_commandline()
-    n_min_high_l = args["n-min-high-l"]
     n_max = args["n-max"]
+    n_min_sqdt = args["n-min-sqdt"]
+    n_max_high_l = args["n-max-high-l"]
     directory = args["directory"]
     overwrite = args["overwrite"]
     species = Symbol(args["species"])
@@ -73,15 +76,11 @@ function main()
     global_logger(combined_logger)
 
     @info "Starting database generation for $species with version $version"
-    @info "Parameters: n_min_high_l=$n_min_high_l, n_max=$n_max"
+    @info "Parameters: $args"
     start_time = time()
 
     # initialize Wigner symbol calculation
-    if args["skip-high-l"]
-        CGcoefficient.wigner_init_float(10, "Jmax", 9)
-    else
-        CGcoefficient.wigner_init_float(n_max - 1, "Jmax", 9)
-    end
+    CGcoefficient.wigner_init_float(n_max - 1, "Jmax", 9)
 
     parameters = MQDT.get_species_parameters(species)
     all_models = Vector{MQDT.fModel}()
@@ -107,16 +106,26 @@ function main()
     @info "Calculating MQDT states..."
     states = Vector{MQDT.EigenStates}(undef, length(all_models))
     for (i, M) in enumerate(all_models)
-        n_min = NaN
+        _n_min = NaN
+        _n_max = n_max
         if startswith(M.name, "SQDT")
-            if args["skip-high-l"]
-                continue
+            _n_min = n_min_sqdt
+            if parameters.spin > 0
+                l_ryd = MQDT.get_lr(M)[1]
+                if l_ryd >= n_max_high_l
+                    _n_max = 0
+                elseif l_ryd > HIGH_L
+                    _n_max = min(n_max_high_l, n_max)
+                end
             end
-            n_min = n_min_high_l
         end
         @info "$(M.name)"
-        states[i] = MQDT.eigenstates(n_min, n_max, M, parameters)
-        @info "  found nu_min=$(minimum(states[i].n)), nu_max=$(maximum(states[i].n)), total states=$(length(states[i].n))"
+        states[i] = MQDT.eigenstates(_n_min, _n_max, M, parameters)
+        if length(states[i].n) > 0
+            @info "  found nu_min=$(minimum(states[i].n)), nu_max=$(maximum(states[i].n)), total states=$(length(states[i].n))"
+        else
+            @info "  found no states"
+        end
     end
 
     basis = MQDT.basisarray(states, all_models)

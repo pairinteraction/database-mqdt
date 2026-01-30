@@ -14,8 +14,8 @@ jobs:
       matrix:
         species: [Sr87, Sr88, Yb171, Yb173, Yb174]
         include:
-          # use n_max=220 for tags and master, but only n_max=100 for PRs, etc.
-          - n_max: ${{ (startsWith(github.ref, 'refs/tags/') || contains(github.ref, 'master')) && 220 || 100 }}
+          # use n_max=220 for tags and main, but only n_max=110 for PRs, etc.
+          - n_max: ${{ (startsWith(github.ref, 'refs/tags/') || contains(github.ref, 'main')) && 220 || 110 }}
           # FIXME: the following species do not yet support high \ell states
           - species: Sr87
             extra_args: "--skip-high-l"
@@ -23,7 +23,7 @@ jobs:
             extra_args: "--skip-high-l"
           - species: Yb173
             extra_args: "--skip-high-l"  # FIXME: Yb173 fails for n > 115
-            n_max: ${{ (startsWith(github.ref, 'refs/tags/') || contains(github.ref, 'master')) && 115 || 100 }}
+            n_max: ${{ (startsWith(github.ref, 'refs/tags/') || contains(github.ref, 'main')) && 115 || 110 }}
     name: ${{ matrix.species }}
     runs-on: ubuntu-latest
     timeout-minutes: 300

@@ -88,13 +88,15 @@ function main()
     s_r = 1 / 2
     j_c = 1 / 2
     i_c = parameters.spin
+    seen_models = Set{String}()
     for l_r = 0:(n_max-1)
         for j_r = abs(l_r-s_r):1:(l_r+s_r)
             for f_c = abs(j_c-i_c):1:(j_c+i_c)
                 for f_tot = abs(f_c-j_r):1:(f_c+j_r)
                     models = MQDT.get_fmodels(species, l_r, j_r, f_c, f_tot, parameters)
                     for model in models
-                        if !any(m -> m.name == model.name, all_models)
+                        if !(model.name in seen_models)
+                            push!(seen_models, model.name)
                             push!(all_models, model)
                         end
                     end

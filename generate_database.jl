@@ -12,7 +12,7 @@ using LRUCache
 include("utils.jl")
 HIGH_L = 10
 
-version = "v1.1"
+version = "v1.2"
 
 function parse_commandline()
     s = ArgParseSettings(

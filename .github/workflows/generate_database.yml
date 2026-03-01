@@ -50,7 +50,7 @@ jobs:
       run: julia --project=. generate_database.jl ${{ matrix.species }} --directory database --n-max ${{ matrix.n_max }} ${{ matrix.extra_args }}
 
     - name: Upload artifacts
-      uses: actions/upload-artifact@v6
+      uses: actions/upload-artifact@v7
       with:
         name: database-${{ matrix.species }}
         path: |
@@ -69,7 +69,7 @@ jobs:
 
     steps:
     - name: Download all the database files
-      uses: actions/download-artifact@v7
+      uses: actions/download-artifact@v8
       with:
         path: database
         pattern: database-*

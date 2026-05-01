@@ -34,11 +34,11 @@ jobs:
       with:
         submodules: 'true'
 
-    - uses: julia-actions/setup-julia@v2
+    - uses: julia-actions/setup-julia@v3
       with:
         version: 1.12
         arch: x64
-    - uses: julia-actions/cache@v2
+    - uses: julia-actions/cache@v3
 
     - name: Instantiate julia environment and link local MQDT.jl
       run: julia --project=. -e 'import Pkg; Pkg.develop(path="MQDT.jl"); Pkg.instantiate()'
@@ -50,7 +50,7 @@ jobs:
       run: julia --project=. generate_database.jl ${{ matrix.species }} --directory database --n-max ${{ matrix.n_max }} ${{ matrix.extra_args }}
 
     - name: Upload artifacts
-      uses: actions/upload-artifact@v6
+      uses: actions/upload-artifact@v7
       with:
         name: database-${{ matrix.species }}
         path: |
@@ -69,7 +69,7 @@ jobs:
 
     steps:
     - name: Download all the database files
-      uses: actions/download-artifact@v7
+      uses: actions/download-artifact@v8
       with:
         path: database
         pattern: database-*
@@ -88,7 +88,7 @@ jobs:
         done
 
     - name: Release zipped database folders
-      uses: softprops/action-gh-release@v2
+      uses: softprops/action-gh-release@v3
       with:
         files: database/*.zip
         draft: true

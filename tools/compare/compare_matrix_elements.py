@@ -2,6 +2,8 @@ from pathlib import Path
 
 import pandas as pd
 
+from utils import add_global_uid_column
+
 TABLE_NAMES: list[str] = [
     "matrix_elements_d",
     "matrix_elements_q",
@@ -14,37 +16,28 @@ TABLE_NAMES: list[str] = [
 def main() -> None:
     # CHANGE THESE PATHS, TO THE FOLDERS YOU WANT TO COMPARE
     db_dir = Path(__file__).parent.parent.parent / "database"
-    species = "Rb"
-    old_path = db_dir / f"{species}_v1.4"
-    new_path = db_dir / f"{species}_v1.5"
+    species = "Yb174_mqdt"
+    old_path = db_dir / f"{species}_v1.2"
+    new_path = db_dir / f"{species}_v1.3"
 
     print(f"Comparing matrix elements tables:\n  New: {new_path}\n  Old: {old_path}")
     for table_name in TABLE_NAMES:
         if not (new_path / f"{table_name}.parquet").exists() or not (old_path / f"{table_name}.parquet").exists():
-            print(f"\nSkipping {table_name} as it does not exist in either the new or the old path.")
+            print(f"\nSkipping {table_name} as it does not exist in either the new or the old path.\n")
             continue
-        compare_matrix_elements_table(
-            table_name,
-            new_path,
-            old_path,
-            max_delta_n=3,
-            min_n=1,
-            max_n=110,
-            verbose=False,
-            only_compare_absolute_values=False,
-        )
+        compare_matrix_elements_table(table_name, new_path, old_path)
 
 
-def compare_matrix_elements_table(  # noqa: C901
+def compare_matrix_elements_table(  # noqa: C901, PLR0915
     table_name: str,
     new_path: Path,
     old_path: Path,
     rtol: float = 1e-2,
     atol: float = 1e-5,
     *,
-    max_delta_n: int = 3,
-    min_n: int = 1,
-    max_n: int = 999,
+    min_nu: float = 0,
+    max_nu: float = float("inf"),
+    max_delta_nu: int = 3,
     only_compare_absolute_values: bool = False,
     verbose: bool = False,
 ) -> None:
@@ -57,88 +50,88 @@ def compare_matrix_elements_table(  # noqa: C901
     3) compare the column "val" of the two matrix elements tables.
 
     """
-    print(f"\nComparing table    {table_name}")
+    print(f"Comparing matrix elements table:     {table_name}")
 
-    states_dict = {
-        "new": pd.read_parquet(new_path / "states.parquet"),
-        "old": pd.read_parquet(old_path / "states.parquet"),
-    }
-    table_dict = {
-        "new": pd.read_parquet(new_path / f"{table_name}.parquet"),
-        "old": pd.read_parquet(old_path / f"{table_name}.parquet"),
-    }
+    species = new_path.name.split("_v")[0]
+    if species != old_path.name.split("_v")[0]:
+        raise ValueError(f"Cannot compare different species: {species} vs {old_path.name.split('_v')[0]}")
 
+    paths = {"new": new_path, "old": old_path}
+    states_dict = {key: pd.read_parquet(path / "states.parquet") for key, path in paths.items()}
+    table_dict = {key: pd.read_parquet(path / f"{table_name}.parquet") for key, path in paths.items()}
+    print(f"  Table shape pre-filtering:    New: {table_dict['new'].shape}; Old: {table_dict['old'].shape}")
+
+    all_columns = ["id_initial", "id_final", "val"]
     for key, table in table_dict.items():
-        print(f"  {key.capitalize()} table shape: {table.shape} with columns: {list(table.columns)}")
+        missing_cols = [col for col in all_columns if col not in table.columns]
+        if len(missing_cols) > 0:
+            print(f"WARNING: {key.capitalize()} table is missing columns: {missing_cols}")
+        extra_cols = [col for col in table.columns if col not in all_columns and col != "id"]
+        if len(extra_cols) > 0:
+            print(f"WARNING: {key.capitalize()} table has extra columns: {extra_cols}")
 
-    multi_index_columns = ["n", "exp_l", "exp_j", "exp_s"]
-    if "mqdt" in str(new_path):
-        multi_index_columns = ["nu", "exp_l", "exp_j", "f", "exp_j_ryd"]
-        # round index columns to avoid floating point issues
-        for col in multi_index_columns:
-            decimals = {"nu": 1}.get(col, 3)
-            states_dict["new"][col] = states_dict["new"][col].round(decimals)
-            states_dict["old"][col] = states_dict["old"][col].round(decimals)
+    # Filter states and matrix elements tables by nu and delta_nu
+    for key, states in states_dict.items():
+        add_global_uid_column(species, states)
+        id_to_global_uid = dict(zip(states["id"], states["global_uid"], strict=True))
 
-    for key, state in states_dict.items():
-        # Create a new unique index for each state based on quantum numbers
-        state["unique_id"] = state.apply(lambda row: "_".join([str(row[col]) for col in multi_index_columns]), axis=1)
-        id_to_newid = dict(zip(state["id"], state["unique_id"], strict=True))
-        id_to_n = dict(zip(state["id"], state["n"], strict=True))
-
-        # Map the ids in the matrix elements table to the new unique identifiers
+        # Add columns global_uid_initial and global_uid_final to the matrix elements table
         table = table_dict[key]
         for which in ["initial", "final"]:
-            table[f"newid_{which}"] = table[f"id_{which}"].map(id_to_newid)
+            table[f"global_uid_{which}"] = table[f"id_{which}"].map(id_to_global_uid)
+            if table[f"global_uid_{which}"].isna().any():  # this should not happen
+                raise ValueError(f"Some {which} ids in {key} table dont have a entry in the states table.")
 
-        # Set new column n_... and filter by it
+        # Set new column nu_... and filter by it
+        id_to_nu = dict(zip(states["id"], states["nu"], strict=True))
         for which in ["initial", "final"]:
-            table[f"n_{which}"] = table[f"id_{which}"].map(id_to_n)
-            table_dict[key] = table = table[table[f"n_{which}"] >= min_n].copy()
-            table_dict[key] = table = table[table[f"n_{which}"] <= max_n].copy()
+            table[f"nu_{which}"] = table[f"id_{which}"].map(id_to_nu)
+            table_dict[key] = table = table[table[f"nu_{which}"] >= min_nu].copy()
+            table_dict[key] = table = table[table[f"nu_{which}"] <= max_nu].copy()
 
-        # Set new column with delta n = abs(n_final - n_initial) and filter by it
-        table["delta_n"] = (table["n_final"] - table["n_initial"]).abs()
-        table_dict[key] = table = table[table["delta_n"] <= max_delta_n].copy()
+        # Set new column with delta_nu = abs(nu_final - nu_initial) and filter by it
+        table["delta_nu"] = (table["nu_final"] - table["nu_initial"]).abs()
+        table_dict[key] = table = table[table["delta_nu"] <= max_delta_nu].copy()
 
-        # Index the matrix elements by the newid
-        table.set_index(["newid_initial", "newid_final"], inplace=True, drop=False)  # noqa: PD002
-        table.sort_index(inplace=True)  # noqa: PD002
+        # Index the matrix elements by the global state uid pair
+        table = table.set_index(["global_uid_initial", "global_uid_final"], drop=False)
+        table_dict[key] = table.sort_index()
+    print(f"  Table shape after-filtering:  New: {table_dict['new'].shape}; Old: {table_dict['old'].shape}")
 
+    # Only keep entries that are present in both tables
     new, old = table_dict["new"], table_dict["old"]
-    print(f"  Values in new table: {new.shape[0]}; Values in old table: {old.shape[0]}")
     common_index = new.index.intersection(old.index)
-
     for table in table_dict.values():
-        # only keep rows that are in both tables
         table.drop(index=common_index.symmetric_difference(table.index), inplace=True, errors="ignore")  # noqa: PD002
         table.sort_index(inplace=True)  # noqa: PD002
-    print(f"  Common values: {new.shape[0]}")
+    print(f"  Common entries: {new.shape[0]}")
 
     # Compare val values within tolerance
+    val_str = "val"
     if only_compare_absolute_values:
-        val_diff = (new["val"].abs() - old["val"].abs()).abs()
-    else:
-        val_diff = (new["val"] - old["val"]).abs()
+        new["val"] = new["val"].abs()
+        old["val"] = old["val"].abs()
+        val_str = "|val|"
+
+    val_diff = (new["val"] - old["val"]).abs()
     tolerance = atol + rtol * old["val"].abs()
     val_mask = val_diff.gt(tolerance)
 
-    print(f"  Found {val_mask.sum()}/{val_mask.shape[0]} val differences outside tolerance:")
+    print(f"  Found {val_mask.sum()}/{val_mask.shape[0]} differences outside tolerance:")
     if verbose and val_mask.any():
         diff_uids = val_mask.loc[val_mask].index
         for uid in diff_uids:
             new_val = new.loc[uid, "val"]
             old_val = old.loc[uid, "val"]
-            diff_val = val_diff[uid]
-            print(f"    State initial: {uid[0]}; State final: {uid[1]}")
-            print(f"      New val: {new_val}")
-            print(f"      Old val: {old_val:.12f}")
-            print(f"      Absolute difference: {diff_val:.2e}")
-            print(f"      Relative difference: {diff_val / abs(old_val):.2e}")
+            diff_val = val_diff.loc[uid]
+            print(f"    State initial: {uid[0]}, State final: {uid[1]}")
+            print(f"      New {val_str}: {new_val:.5f}, Old {val_str}: {old_val:.5f}")
+            print(f"      Absolute difference: {diff_val:.2e}, Relative difference: {diff_val / abs(old_val):.2e}")
 
     rdiff = val_diff / old["val"].abs()
-    print(f"  Maximum absolute val difference: {val_diff.max():.2e}")
-    print(f"  Min/Max relative val difference: {rdiff.min():.2e} / {rdiff.max():.2e}")
+    print(f"  Maximum absolute {val_str} difference: {val_diff.max():.2e}")
+    print(f"  Maximum relative {val_str} difference: {rdiff.max():.2e}")
+    print()
 
 
 if __name__ == "__main__":

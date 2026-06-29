@@ -3,16 +3,16 @@ __pycache__/
 .ruff_cache/
 .mypy_cache/
 .venv/
-*.egg-info/
-wheelhouse/
-build/
-dist/
 .pytest_cache/
 
 # Ignore local development files
 playground/
 
-# Ignore the generated databases
-database/
-profiling/
-profiling*.svg
+# Ignore uv lock
+uv.lock
+
+# Ignore the database and log files
+*.parquet
+*.db-journal
+*.db
+log

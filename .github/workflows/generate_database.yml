@@ -12,16 +12,11 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        species: [misc, H, Li, Na, K, Rb, Cs, Sr88_sqdt]
+        species: [Sr87_mqdt, Sr88_mqdt, Yb171_mqdt, Yb173_mqdt, Yb174_mqdt]
         include:
-          - extra_args: "--max-delta-n 10 --all-n-up-to 30 --warnings-as-exceptions"
-          # use n_max=220 for tags and main, but only n_max=100 for PRs, etc.
-          - arg_max: ${{ (startsWith(github.ref, 'refs/tags/') || github.ref == 'refs/heads/main') && '--n-max 220' || '--n-max 100' }}
-          - species: Sr88_sqdt
-            extra_args: "--max-delta-n 10 --all-n-up-to 30 "  # no warnings as exceptions, due to bad convergence
-          - species: misc
-            arg_max: ${{ (startsWith(github.ref, 'refs/tags/') || github.ref == 'refs/heads/main') && '--f-max 220' || '--f-max 100' }}
-            extra_args: "--warnings-as-exceptions"
+          - extra_args: "--max-delta-nu 10 --all-nu-up-to 30"
+          # use nu-max=220 for tags and main, but only nu-max=100 for PRs, etc.
+          - arg_max: ${{ (startsWith(github.ref, 'refs/tags/') || github.ref == 'refs/heads/main') && '--nu-max 220' || '--nu-max 100' }}
     name: ${{ matrix.species }}
     runs-on: ubuntu-latest
     timeout-minutes: 300

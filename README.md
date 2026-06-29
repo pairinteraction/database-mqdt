@@ -1,16 +1,12 @@
-# Tool for generating the SQDT database tables in the cloud
+# Tool for generating the MQDT database tables in the cloud
 
 Create the database including tables of states and matrix elements calculated with single-channel quantum defect theory.
-Database tables are available through [GitHub Releases](https://github.com/pairinteraction/database-sqdt/releases).
+Database tables are available through [GitHub Releases](https://github.com/pairinteraction/database-mqdt/releases).
 
 ## Generate new tables locally
 Run the script to generate the tables via
 ```bash
-uv run generate_database <species> --n-max <n-max> --directory <directory>
-```
-or for the misc wigner table via
-```bash
-uv run generate_database misc --f-max <f-max> --directory <directory>
+uv run generate_database <species_mqdt> --nu-max <nu-max> --directory <directory>
 ```
 
 ## Generate a new release
@@ -27,5 +23,5 @@ To check the performance of this tool and to look for bottlenecks in the code, y
 To do so simply run the following command:
 
 ```bash
-uv run py-spy record -o profiling.svg -- generate_database <species> --n-max <n-max>
+uv run py-spy record -o profiling.svg -- generate_database <species_mqdt> --nu-max <nu-max>
 ```

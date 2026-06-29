@@ -12,50 +12,33 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        species: [Sr87, Sr88, Yb171, Yb173, Yb174]
+        species: [misc, H, Li, Na, K, Rb, Cs, Sr88_sqdt]
         include:
-          # use n_max=220 for tags and main, but only n_max=110 for PRs, etc.
-          - n_max: ${{ (startsWith(github.ref, 'refs/tags/') || contains(github.ref, 'main')) && 220 || 110 }}
-          # for isotopes with hyperfine structure, we only include high-l states up to n=110 (otherwise the database size gets too large)
-          - species: Sr87
-            extra_args: "--n-max-high-l 110"
-          - species: Yb171
-            extra_args: "--n-max-high-l 110"
-          - species: Yb173
-            extra_args: "--n-max-high-l 110"
+          - extra_args: "--max-delta-n 10 --all-n-up-to 30 --warnings-as-exceptions"
+          # use n_max=220 for tags and main, but only n_max=100 for PRs, etc.
+          - arg_max: ${{ (startsWith(github.ref, 'refs/tags/') || github.ref == 'refs/heads/main') && '--n-max 220' || '--n-max 100' }}
+          - species: Sr88_sqdt
+            extra_args: "--max-delta-n 10 --all-n-up-to 30 "  # no warnings as exceptions, due to bad convergence
+          - species: misc
+            arg_max: ${{ (startsWith(github.ref, 'refs/tags/') || github.ref == 'refs/heads/main') && '--f-max 220' || '--f-max 100' }}
+            extra_args: "--warnings-as-exceptions"
     name: ${{ matrix.species }}
     runs-on: ubuntu-latest
     timeout-minutes: 300
-    permissions: # needed to allow julia-actions/cache to proactively delete old caches that it has created
-      actions: write
-      contents: read
     steps:
     - uses: actions/checkout@v6
       with:
         submodules: 'true'
-
-    - uses: julia-actions/setup-julia@v2
-      with:
-        version: 1.12
-        arch: x64
-    - uses: julia-actions/cache@v2
-
-    - name: Instantiate julia environment and link local MQDT.jl
-      run: julia --project=. -e 'import Pkg; Pkg.develop(path="MQDT.jl"); Pkg.instantiate()'
-
-    - name: Install and link local rydstate python package
-      run: julia --project=. -e 'using CondaPkg; CondaPkg.withenv() do; run(`python -m pip install -e rydstate`); end'
-
-    - name: Run generate_database
-      run: julia --project=. generate_database.jl ${{ matrix.species }} --directory database --n-max ${{ matrix.n_max }} ${{ matrix.extra_args }}
-
+    - name: Install uv
+      uses: astral-sh/setup-uv@v7
+    - name: Run generate_database.py
+      run: uv run generate_database ${{ matrix.species }} --directory database/${{ matrix.species }}_v$(uv version --short) ${{ matrix.arg_max }} ${{ matrix.extra_args }}
     - name: Upload artifacts
-      uses: actions/upload-artifact@v6
+      uses: actions/upload-artifact@v7
       with:
         name: database-${{ matrix.species }}
         path: |
           database/*/*.parquet
-
 
   github-release:
     name: Release database files to github releases
@@ -69,7 +52,7 @@ jobs:
 
     steps:
     - name: Download all the database files
-      uses: actions/download-artifact@v7
+      uses: actions/download-artifact@v8
       with:
         path: database
         pattern: database-*
@@ -88,7 +71,7 @@ jobs:
         done
 
     - name: Release zipped database folders
-      uses: softprops/action-gh-release@v2
+      uses: softprops/action-gh-release@v3
       with:
         files: database/*.zip
         draft: true

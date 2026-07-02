@@ -7,6 +7,10 @@ on:
   pull_request:
     types: [opened, reopened, synchronize]
 
+env:
+  # set to "true" to run generate_database with profiling it via py-spy
+  USE_PYSPY: "false"
+
 jobs:
   run-generate-database:
     strategy:
@@ -14,9 +18,15 @@ jobs:
       matrix:
         species: [Sr87_mqdt, Sr88_mqdt, Yb171_mqdt, Yb173_mqdt, Yb174_mqdt]
         include:
-          - extra_args: "--max-delta-nu 10 --all-nu-up-to 30"
-          # use nu-max=220 for tags and main, but only nu-max=100 for PRs, etc.
-          - arg_max: ${{ (startsWith(github.ref, 'refs/tags/') || github.ref == 'refs/heads/main') && '--nu-max 220' || '--nu-max 100' }}
+          # use nu-max=120 for tags and main, but only nu-max=80 for PRs, etc.
+          - arg_max: ${{ (startsWith(github.ref, 'refs/tags/') || github.ref == 'refs/heads/main') && '--nu-max 120' || '--nu-max 80' }}
+          # for hyperfine split isotopes, limit the total and orbital angular momentum to 10 to avoid too large databases
+          - species: Sr87_mqdt
+            extra_args: "--l-r-max 10 --f-tot-max 10"
+          - species: Yb171_mqdt
+            extra_args: "--l-r-max 10 --f-tot-max 10"
+          - species: Yb173_mqdt
+            extra_args: "--l-r-max 10 --f-tot-max 10"
     name: ${{ matrix.species }}
     runs-on: ubuntu-latest
     timeout-minutes: 300
@@ -26,14 +36,33 @@ jobs:
         submodules: 'true'
     - name: Install uv
       uses: astral-sh/setup-uv@v7
+    - name: Sync uv dependencies
+      run: uv sync --locked
+    - name: Set database directory
+      run: |
+        VERSION=$(uv version --short)
+        echo "DB_DIR=database/${{ matrix.species }}_v$VERSION" >> "$GITHUB_ENV"
     - name: Run generate_database.py
-      run: uv run generate_database ${{ matrix.species }} --directory database/${{ matrix.species }}_v$(uv version --short) ${{ matrix.arg_max }} ${{ matrix.extra_args }}
+      run: |
+        PROFILER=""
+        if [ "$USE_PYSPY" = "true" ]; then
+          PROFILER="py-spy record -o profile_${{ matrix.species }}.svg --"
+        fi
+        uv run $PROFILER generate_database mqdt ${{ matrix.species }} --directory "$DB_DIR" ${{ matrix.arg_max }} ${{ matrix.extra_args }}
+    - name: Check that all tables were created
+      run: ls "$DB_DIR"/{states,matrix_elements_d,matrix_elements_q,matrix_elements_q0,matrix_elements_mu,matrix_elements_o}.parquet
     - name: Upload artifacts
       uses: actions/upload-artifact@v7
       with:
         name: database-${{ matrix.species }}
         path: |
           database/*/*.parquet
+    - name: Upload profile
+      if: always() && env.USE_PYSPY == 'true'
+      uses: actions/upload-artifact@v7
+      with:
+        name: profile-${{ matrix.species }}
+        path: profile*.svg
 
   github-release:
     name: Release database files to github releases

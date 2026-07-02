@@ -6,7 +6,7 @@ Database tables are available through [GitHub Releases](https://github.com/pairi
 ## Generate new tables locally
 Run the script to generate the tables via
 ```bash
-uv run generate_database <species_mqdt> --nu-max <nu-max> --directory <directory>
+uv run generate_database mqdt <species> --nu-max <nu-max> --directory <directory>
 ```
 
 ## Generate a new release
@@ -23,5 +23,5 @@ To check the performance of this tool and to look for bottlenecks in the code, y
 To do so simply run the following command:
 
 ```bash
-uv run py-spy record -o profiling.svg -- generate_database <species_mqdt> --nu-max <nu-max>
+uv run py-spy record -o profiling.svg -- generate_database mqdt <species> --nu-max <nu-max>
 ```

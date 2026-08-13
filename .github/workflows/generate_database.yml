@@ -18,15 +18,15 @@ jobs:
       matrix:
         species: [Sr87_mqdt, Sr88_mqdt, Yb171_mqdt, Yb173_mqdt, Yb174_mqdt]
         include:
-          # use nu-max=120 for tags and main, but only nu-max=80 for PRs, etc.
-          - arg_max: ${{ (startsWith(github.ref, 'refs/tags/') || github.ref == 'refs/heads/main') && '--nu-max 120' || '--nu-max 80' }}
-          # for hyperfine split isotopes, limit the total and orbital angular momentum to 10 to avoid too large databases
+          # use nu-max=110 for tags and main, but only nu-max=80 for PRs, etc.
+          - arg_max: ${{ (startsWith(github.ref, 'refs/tags/') || github.ref == 'refs/heads/main') && '--nu-max 110' || '--nu-max 80' }}
+          # for hyperfine split isotopes, limit the orbital angular momentum to 10 to avoid too large databases
           - species: Sr87_mqdt
-            extra_args: "--l-r-max 10 --f-tot-max 10"
+            extra_args: "--l-r-max 10"
           - species: Yb171_mqdt
-            extra_args: "--l-r-max 10 --f-tot-max 10"
+            extra_args: "--l-r-max 10"
           - species: Yb173_mqdt
-            extra_args: "--l-r-max 10 --f-tot-max 10"
+            extra_args: "--l-r-max 10"
     name: ${{ matrix.species }}
     runs-on: ubuntu-latest
     timeout-minutes: 300
